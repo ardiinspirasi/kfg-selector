@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KFG Admin Panel</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background: #f4f6f9; padding: 20px; }
+    .container { max-width: 1200px; margin: 0 auto; background: white; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); overflow: hidden; }
+    .header { padding: 24px; background: white; border-bottom: 1px solid #eef2f6; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+    h1 { font-size: 24px; color: #1a2634; }
+    .btn { padding: 10px 20px; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+    .btn-primary { background: #1a2634; color: white; }
+    .btn-primary:hover { background: #2c3e50; }
+    .btn-edit { background: #3498db; color: white; }
+    .btn-preview { background: #2ecc71; color: white; }
+    .btn-danger { background: #e74c3c; color: white; }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+    .table-container { padding: 24px; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th { text-align: left; padding: 12px; background: #f8fafd; color: #4a5568; font-weight: 600; border-bottom: 2px solid #e2e8f0; }
+    td { padding: 16px 12px; border-bottom: 1px solid #edf2f7; color: #2d3748; }
+    tr:hover { background: #fafcff; }
+    .action-group { display: flex; gap: 8px; flex-wrap: wrap; }
+    .loading { text-align: center; padding: 60px; color: #718096; }
+    .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 15px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .empty-state { text-align: center; padding: 60px 20px; color: #a0aec0; }
+
+    #notif-container { position: fixed; top: 20px; right: 20px; z-index: 9999; }
+    .notif { background: white; padding: 16px 24px; border-radius: 12px; margin-bottom: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 10px; border-left: 4px solid; animation: slideIn 0.3s; cursor: pointer; }
+    .notif.success { border-left-color: #2ecc71; }
+    .notif.error { border-left-color: #e74c3c; }
+    .notif.info { border-left-color: #3498db; }
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+    .modal-overlay.open { display: flex; }
+    .modal-box { background: white; border-radius: 20px; padding: 28px; width: 100%; max-width: 480px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); animation: modalIn 0.25s; }
+    @keyframes modalIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .modal-title { font-size: 20px; font-weight: 700; color: #1a2634; margin-bottom: 20px; }
+    .modal-group { margin-bottom: 16px; }
+    .modal-group label { display: block; font-size: 13px; font-weight: 600; color: #4a5568; margin-bottom: 6px; }
+    .modal-group input, .modal-group textarea { width: 100%; padding: 12px 14px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 14px; font-family: inherit; transition: all 0.2s; }
+    .modal-group input:focus, .modal-group textarea:focus { outline: none; border-color: #3498db; box-shadow: 0 0 0 3px rgba(52,152,219,0.1); }
+    .modal-group textarea { resize: vertical; min-height: 80px; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .modal-actions button { flex: 1; padding: 12px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .modal-save { background: #1a2634; color: white; }
+    .modal-cancel { background: #e2e8f0; color: #4a5568; }
+
+    @media (max-width: 768px) {
+      .header { flex-direction: column; align-items: stretch; }
+      .btn { width: 100%; justify-content: center; }
+      .action-group { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div id="notif-container"></div>
+
+  <div class="container">
+    <div class="header">
+      <h1>📊 KFG Admin Panel</h1>
+      <button class="btn btn-primary" onclick="location.href='create.html'">➕ Tambah Project Baru</button>
+    </div>
+    <div class="table-container">
+      <div id="loading" class="loading"><div class="spinner"></div><p>Memuat data...</p></div>
+      <table id="table" style="display:none">
+        <thead><tr><th>ID</th><th>Project</th><th>Client</th><th>Max</th><th width="220">Aksi</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div id="empty" class="empty-state" style="display:none">
+        <p>📭 Belum ada project</p>
+        <button class="btn btn-primary" onclick="location.href='create.html'" style="margin-top:10px">Buat Project Pertama</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Edit -->
+  <div class="modal-overlay" id="editModal">
+    <div class="modal-box">
+      <div class="modal-title">✏️ Edit Project</div>
+      <input type="hidden" id="editId">
+      <div class="modal-group"><label>Nama Project</label><input type="text" id="editProject"></div>
+      <div class="modal-group"><label>Nama Client</label><input type="text" id="editClient"></div>
+      <div class="modal-group"><label>Max Select</label><input type="number" id="editMax" min="1"></div>
+      <div class="modal-group"><label>Folder Tambahan (satu per baris)</label><textarea id="editAdditional" placeholder="https://drive.google.com/drive/folders/..."></textarea></div>
+      <div class="modal-actions">
+        <button class="modal-cancel" onclick="closeEdit()">Batal</button>
+        <button class="modal-save" onclick="saveEdit()">💾 Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script>
+    async function api(action, params = {}) {
+      const url = new URL(API_URL);
+      url.searchParams.set("action", action);
+      Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+      const res = await fetch(url.toString());
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error);
+      return json.data;
+    }
+
+    async function apiPost(action, body = {}) {
+      const res = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action, ...body }) });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error);
+      return json.data;
+    }
+
+    function showNotif(msg, type = "info") {
+      const c = document.getElementById("notif-container");
+      const n = document.createElement("div");
+      n.className = `notif ${type}`;
+      n.innerHTML = `<span>${type === "success" ? "✅" : type === "error" ? "❌" : "ℹ️"}</span><span>${msg}</span>`;
+      n.onclick = () => n.remove();
+      c.appendChild(n);
+      setTimeout(() => n.remove(), 5000);
+    }
+
+    function esc(s) {
+      if (!s) return "";
+      return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+    }
+
+    async function loadProjects() {
+      try {
+        const data = await api("getProjects");
+        document.getElementById("loading").style.display = "none";
+
+        if (!data || data.length === 0) {
+          document.getElementById("empty").style.display = "block";
+          return;
+        }
+
+        const tbody = document.querySelector("#table tbody");
+        tbody.innerHTML = "";
+        data.forEach(p => {
+          const row = tbody.insertRow();
+          row.innerHTML = `
+            <td><code>${esc(p.id)}</code></td>
+            <td><strong>${esc(p.project)}</strong></td>
+            <td>${esc(p.client)}</td>
+            <td>${p.maxSelect}</td>
+            <td>
+              <div class="action-group">
+                <button class="btn btn-sm btn-preview" onclick="preview('${esc(p.id)}')">🔍 Preview</button>
+                <button class="btn btn-sm btn-edit" onclick="openEdit('${esc(p.id)}','${esc(p.project)}','${esc(p.client)}','${p.maxSelect}','${esc(p.additionalFolders||'')}')">✏️ Edit</button>
+                <button class="btn btn-sm btn-danger" id="del-${esc(p.id)}" onclick="deleteProject('${esc(p.id)}')">🗑️ Delete</button>
+              </div>
+            </td>
+          `;
+        });
+        document.getElementById("table").style.display = "table";
+      } catch (err) {
+        document.getElementById("loading").innerHTML = `<p style="color:#e74c3c">❌ ${err.message}</p>`;
+      }
+    }
+
+    function preview(id) {
+      window.open("client.html?id=" + id, "_blank");
+    }
+
+    async function deleteProject(id) {
+      if (!confirm("⚠️ Yakin hapus project ini?")) return;
+      const btn = document.getElementById("del-" + id);
+      btn.disabled = true; btn.textContent = "⏳";
+      try {
+        await apiPost("deleteProject", { projectId: id });
+        showNotif("Project berhasil dihapus", "success");
+        loadProjects();
+      } catch (err) {
+        showNotif(err.message, "error");
+        btn.disabled = false; btn.textContent = "🗑️ Delete";
+      }
+    }
+
+    function openEdit(id, project, client, max, additional) {
+      document.getElementById("editId").value = id;
+      document.getElementById("editProject").value = project;
+      document.getElementById("editClient").value = client;
+      document.getElementById("editMax").value = max;
+      document.getElementById("editAdditional").value = additional || "";
+      document.getElementById("editModal").classList.add("open");
+      document.getElementById("editProject").focus();
+    }
+
+    function closeEdit() { document.getElementById("editModal").classList.remove("open"); }
+
+    document.getElementById("editModal").addEventListener("click", e => { if (e.target === e.currentTarget) closeEdit(); });
+
+    async function saveEdit() {
+      const id = document.getElementById("editId").value;
+      const project = document.getElementById("editProject").value.trim();
+      const client = document.getElementById("editClient").value.trim();
+      const max = document.getElementById("editMax").value.trim();
+      const additional = document.getElementById("editAdditional").value.trim();
+
+      if (!project || !client || !max) { showNotif("Semua field wajib diisi", "error"); return; }
+      if (isNaN(max) || parseInt(max) <= 0) { showNotif("Max Select harus angka positif", "error"); return; }
+
+      const btn = document.querySelector(".modal-save");
+      btn.disabled = true; btn.textContent = "⏳ Menyimpan...";
+
+      try {
+        await apiPost("updateProject", { id, project, client, maxSelect: max, additionalFolders: additional });
+        showNotif("Project berhasil diupdate", "success");
+        closeEdit();
+        loadProjects();
+      } catch (err) {
+        showNotif(err.message, "error");
+      } finally {
+        btn.disabled = false; btn.textContent = "💾 Simpan";
+      }
+    }
+
+    loadProjects();
+  </script>
+</body>
+</html>

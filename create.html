@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Buat Project Baru - KFG</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background: #f4f6f9; min-height: 100vh; padding: 20px; }
+    .container { max-width: 700px; margin: 0 auto; background: white; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.08); padding: 32px; }
+    h1 { font-size: 28px; color: #1a2634; margin-bottom: 24px; display: flex; align-items: center; gap: 10px; }
+    .form-group { margin-bottom: 20px; }
+    label { display: block; font-size: 14px; font-weight: 600; color: #4a5568; margin-bottom: 6px; }
+    .input { width: 100%; padding: 14px 16px; border: 2px solid #e2e8f0; border-radius: 14px; font-size: 15px; font-family: inherit; transition: all 0.2s; }
+    .input:focus { outline: none; border-color: #3498db; box-shadow: 0 0 0 3px rgba(52,152,219,0.1); }
+    .hint { font-size: 12px; color: #718096; margin-top: 6px; }
+    .btn { padding: 14px 24px; border: none; border-radius: 14px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn-primary { background: #1a2634; color: white; width: 100%; }
+    .btn-primary:hover:not(:disabled) { background: #2c3e50; transform: translateY(-2px); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-back { background: #e2e8f0; color: #1a2634; margin-bottom: 20px; width: auto; padding: 10px 20px; font-size: 14px; }
+
+    .folder-list { margin-top: 10px; border: 2px solid #e2e8f0; border-radius: 14px; padding: 15px; background: #f8fafc; }
+    .folder-item { display: flex; align-items: center; gap: 10px; padding: 8px; background: white; border-radius: 8px; margin-bottom: 8px; border: 1px solid #e2e8f0; }
+    .folder-item input { flex: 1; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; }
+    .remove-folder { background: #fee2e2; color: #ef4444; border: none; width: 30px; height: 30px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+    .add-folder { margin-top: 10px; background: #e2e8f0; color: #1a2634; border: 2px dashed #94a3b8; width: 100%; padding: 12px; border-radius: 10px; cursor: pointer; font-weight: 600; }
+
+    .success-box { margin-top: 30px; padding: 24px; background: #f0fff4; border: 2px solid #c6f6d5; border-radius: 16px; display: none; }
+    .success-box h3 { color: #22543d; margin-bottom: 16px; font-size: 20px; }
+    .link-input { width: 100%; padding: 14px; border: 2px solid #c6f6d5; border-radius: 12px; font-size: 14px; background: white; margin: 10px 0; }
+    .action-row { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+    .action-row button { flex: 1; min-width: 100px; padding: 12px; border: none; border-radius: 12px; background: #e2e8f0; font-weight: 600; cursor: pointer; font-size: 13px; }
+    .action-row button:hover { background: #cbd5e0; }
+
+    .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 8px; vertical-align: middle; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #notif { position: fixed; top: 20px; right: 20px; padding: 16px 24px; background: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); display: none; align-items: center; gap: 10px; z-index: 9999; border-left: 4px solid #2ecc71; }
+    #notif.error { border-left-color: #e74c3c; }
+  </style>
+</head>
+<body>
+  <div id="notif"></div>
+
+  <div class="container">
+    <button class="btn btn-back" onclick="location.href='admin.html'">← Kembali ke Admin</button>
+
+    <h1><span>📁</span> Buat Project Baru</h1>
+
+    <div id="formWrap">
+      <div class="form-group">
+        <label>Nama Project</label>
+        <input type="text" class="input" id="project" placeholder="Contoh: Wedding Andi & Sarah" autofocus>
+      </div>
+      <div class="form-group">
+        <label>Nama Client</label>
+        <input type="text" class="input" id="client" placeholder="Contoh: Andi & Sarah">
+      </div>
+      <div class="form-group">
+        <label>Folder Utama Google Drive</label>
+        <input type="url" class="input" id="mainFolder" placeholder="https://drive.google.com/drive/folders/...">
+        <div class="hint">Folder utama yang berisi foto-foto</div>
+      </div>
+      <div class="form-group">
+        <label>Folder Tambahan (Opsional)</label>
+        <div id="folderList" class="folder-list">
+          <div class="folder-item">
+            <input type="url" class="folder-input" placeholder="https://drive.google.com/drive/folders/...">
+            <button type="button" class="remove-folder" onclick="removeFolder(this)">✕</button>
+          </div>
+        </div>
+        <button type="button" class="add-folder" onclick="addFolder()">+ Tambah Folder Lain</button>
+        <div class="hint">Bisa tambah multiple folder</div>
+      </div>
+      <div class="form-group">
+        <label>Max Select (Jumlah foto yang bisa dipilih)</label>
+        <input type="number" class="input" id="max" placeholder="Contoh: 80" min="1" max="1000">
+      </div>
+      <button class="btn btn-primary" id="submitBtn" onclick="createProject()">🚀 CREATE PROJECT</button>
+    </div>
+
+    <div class="success-box" id="successBox">
+      <h3>✅ Project Berhasil Dibuat!</h3>
+      <div class="hint" style="margin-bottom:8px">Link untuk client:</div>
+      <input type="text" class="link-input" id="generatedLink" readonly>
+      <div class="action-row">
+        <button onclick="copyLink()">📋 Salin Link</button>
+        <button onclick="previewLink()">👁️ Preview</button>
+        <button onclick="sendWA()">📲 Kirim WA</button>
+      </div>
+      <button class="btn btn-primary" onclick="resetForm()" style="margin-top:10px">➕ Buat Project Lagi</button>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script>
+    let latestLink = "";
+
+    async function apiPost(action, body = {}) {
+      const res = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action, ...body }) });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error);
+      return json.data;
+    }
+
+    function showNotif(msg, isError = false) {
+      const n = document.getElementById("notif");
+      n.style.display = "flex";
+      n.className = isError ? "error" : "";
+      n.innerHTML = `<span>${isError ? "❌" : "✅"}</span><span>${msg}</span>`;
+      setTimeout(() => n.style.display = "none", 5000);
+    }
+
+    function addFolder() {
+      const list = document.getElementById("folderList");
+      const item = document.createElement("div");
+      item.className = "folder-item";
+      item.innerHTML = `<input type="url" class="folder-input" placeholder="https://drive.google.com/drive/folders/..."><button type="button" class="remove-folder" onclick="removeFolder(this)">✕</button>`;
+      list.appendChild(item);
+    }
+
+    function removeFolder(btn) {
+      const list = document.getElementById("folderList");
+      if (list.children.length > 1) btn.parentElement.remove();
+      else showNotif("Minimal harus ada satu folder", true);
+    }
+
+    function getAdditionalFolders() {
+      return [...document.querySelectorAll(".folder-input")]
+        .map(i => i.value.trim()).filter(v => v).join("\n");
+    }
+
+    async function createProject() {
+      const project = document.getElementById("project").value.trim();
+      const client  = document.getElementById("client").value.trim();
+      const mainFolder = document.getElementById("mainFolder").value.trim();
+      const max = document.getElementById("max").value.trim();
+      const additionalFolders = getAdditionalFolders();
+
+      if (!project || !client || !mainFolder || !max) { showNotif("Semua field wajib diisi", true); return; }
+      if (isNaN(max) || parseInt(max) <= 0) { showNotif("Max Select harus angka positif", true); return; }
+
+      const btn = document.getElementById("submitBtn");
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Creating...';
+
+      try {
+        const projectId = await apiPost("createProject", { project, client, folderUrl: mainFolder, maxSelect: max, additionalFolders });
+        latestLink = location.origin + location.pathname.replace("create.html", "") + "client.html?id=" + projectId;
+        document.getElementById("generatedLink").value = latestLink;
+        document.getElementById("formWrap").style.display = "none";
+        document.getElementById("successBox").style.display = "block";
+        showNotif("Project berhasil dibuat! 🎉");
+      } catch (err) {
+        showNotif(err.message || "Gagal membuat project", true);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = "🚀 CREATE PROJECT";
+      }
+    }
+
+    function copyLink() { navigator.clipboard.writeText(latestLink); showNotif("Link disalin! 📋"); }
+    function previewLink() { window.open(latestLink, "_blank"); }
+    function sendWA() {
+      const text = `Halo 👋\n\nBerikut link untuk memilih foto:\n${latestLink}\n\nSilakan pilih sesuai kuota ya.`;
+      window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank");
+    }
+
+    function resetForm() {
+      document.getElementById("project").value = "";
+      document.getElementById("client").value = "";
+      document.getElementById("mainFolder").value = "";
+      document.getElementById("max").value = "";
+      document.getElementById("folderList").innerHTML = `
+        <div class="folder-item">
+          <input type="url" class="folder-input" placeholder="https://drive.google.com/drive/folders/...">
+          <button type="button" class="remove-folder" onclick="removeFolder(this)">✕</button>
+        </div>`;
+      document.getElementById("formWrap").style.display = "block";
+      document.getElementById("successBox").style.display = "none";
+      document.getElementById("project").focus();
+    }
+  </script>
+</body>
+</html>

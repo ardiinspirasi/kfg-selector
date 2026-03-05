@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KFG Final Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0f1e; color: #fff; min-height: 100vh; }
+    .container { display: flex; min-height: 100vh; }
+    .sidebar { width: 320px; background: #0f172a; border-right: 1px solid #1e293b; overflow-y: auto; }
+    .sidebar-header { padding: 24px 16px; background: #1a2634; border-bottom: 1px solid #334155; }
+    .sidebar-header h2 { font-size: 18px; color: #94a3b8; }
+    .sidebar-header h1 { font-size: 24px; margin-top: 5px; }
+    .project-item { padding: 16px; border-bottom: 1px solid #1e293b; cursor: pointer; transition: all 0.2s; }
+    .project-item:hover { background: #1e293b; }
+    .project-item.active { background: #1e293b; border-left: 4px solid #22c55e; }
+    .project-name { font-weight: 600; font-size: 16px; margin-bottom: 4px; }
+    .project-meta { font-size: 13px; color: #94a3b8; display: flex; gap: 10px; }
+    .main { flex: 1; padding: 30px; overflow-y: auto; }
+    .main-header { margin-bottom: 30px; }
+    .main-header h2 { font-size: 28px; margin-bottom: 10px; }
+    .main-header .stats { color: #94a3b8; }
+    .selection-box { background: #0f172a; border: 1px solid #1e293b; border-radius: 16px; padding: 20px; margin-bottom: 20px; }
+    .selection-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
+    .selection-header h3 { font-size: 18px; color: #22c55e; }
+    .btn { padding: 12px 24px; border: none; border-radius: 40px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn-primary { background: #22c55e; color: #022c22; }
+    .btn-primary:hover { background: #16a34a; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    pre { background: #0a0f1e; border: 1px solid #1e293b; border-radius: 12px; padding: 20px; font-family: monospace; font-size: 13px; line-height: 1.6; color: #cbd5e1; overflow-x: auto; max-height: 300px; }
+    .empty-state { text-align: center; padding: 60px; color: #64748b; }
+    .loading { text-align: center; padding: 40px; }
+    .spinner { border: 3px solid #1e293b; border-top: 3px solid #22c55e; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 15px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (max-width: 768px) {
+      .container { flex-direction: column; }
+      .sidebar { width: 100%; max-height: 300px; }
+      .main { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <h2>📋 Daftar Project</h2>
+        <h1>KFG Final</h1>
+      </div>
+      <div id="projectList">
+        <div class="loading"><div class="spinner"></div><div>Memuat project...</div></div>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="main-header">
+        <h2 id="projectTitle">Pilih Project di Samping</h2>
+        <div class="stats" id="projectStats"></div>
+      </div>
+      <div id="selectionContent">
+        <div class="empty-state">👈 Pilih project untuk melihat hasil seleksi</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script>
+    let currentProjectId = "";
+
+    async function api(action, params = {}) {
+      const url = new URL(API_URL);
+      url.searchParams.set("action", action);
+      Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+      const res = await fetch(url.toString());
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error);
+      return json.data;
+    }
+
+    async function apiPost(action, body = {}) {
+      const res = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action, ...body }) });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error);
+      return json.data;
+    }
+
+    function esc(s) {
+      if (!s) return "";
+      return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    }
+
+    async function loadProjects() {
+      const listEl = document.getElementById("projectList");
+      try {
+        const projects = await api("getAllProjects");
+        if (!projects || projects.length === 0) {
+          listEl.innerHTML = `<div class="empty-state">Belum ada project<br><small style="color:#64748b">Buat project baru di <a href="admin.html" style="color:#22c55e">admin panel</a></small></div>`;
+          return;
+        }
+        listEl.innerHTML = "";
+        projects.forEach(p => {
+          const item = document.createElement("div");
+          item.className = "project-item";
+          item.dataset.id = p.id;
+          item.innerHTML = `<div class="project-name">${esc(p.project)}</div><div class="project-meta"><span>👤 ${esc(p.client)}</span><span>📸 ${p.total || 0} pilihan</span></div>`;
+          item.onclick = () => selectProject(p.id, p.project, p.client, p.total);
+          listEl.appendChild(item);
+        });
+      } catch (err) {
+        listEl.innerHTML = `<div class="empty-state" style="color:#ef4444">❌ ${err.message}</div>`;
+      }
+    }
+
+    async function selectProject(id, name, client, total) {
+      currentProjectId = id;
+      document.querySelectorAll(".project-item").forEach(el => {
+        el.classList.toggle("active", el.dataset.id === id);
+      });
+      document.getElementById("projectTitle").textContent = name;
+      document.getElementById("projectStats").textContent = `👤 ${client} • 📸 ${total || 0} total pilihan`;
+
+      const content = document.getElementById("selectionContent");
+      content.innerHTML = `<div class="loading"><div class="spinner"></div><div>Memuat pilihan...</div></div>`;
+
+      try {
+        const rows = await api("getSelections", { id });
+        if (!rows || rows.length === 0) {
+          content.innerHTML = `<div class="empty-state">📭 Belum ada pilihan dari client</div>`;
+          return;
+        }
+
+        const groups = {};
+        rows.forEach(row => {
+          const ts = new Date(row[0]).toLocaleString("id-ID");
+          if (!groups[ts]) groups[ts] = [];
+          groups[ts].push(row[2]);
+        });
+
+        let html = `<div class="selection-box">
+          <div class="selection-header">
+            <h3>📸 File yang Dipilih</h3>
+            <button class="btn btn-primary" id="copyBtn" onclick="copyFinal()">📋 Auto Copy to FINAL</button>
+          </div>`;
+
+        Object.keys(groups).sort().reverse().forEach((ts, idx) => {
+          const files = groups[ts];
+          html += `<div style="margin-bottom:20px; padding:10px; background:#1a2634; border-radius:8px;">
+            <div style="color:#94a3b8; font-size:12px; margin-bottom:8px;">📅 Submission ${idx + 1}: ${ts} (${files.length} file)</div>
+            <pre style="margin:0">${esc(files.join("\n"))}</pre>
+          </div>`;
+        });
+
+        html += `</div>`;
+        content.innerHTML = html;
+      } catch (err) {
+        content.innerHTML = `<div class="empty-state" style="color:#ef4444">❌ ${err.message}</div>`;
+      }
+    }
+
+    async function copyFinal() {
+      if (!currentProjectId) { alert("Pilih project dulu"); return; }
+      if (!confirm("⚠️ Copy semua file terpilih ke folder FINAL?")) return;
+
+      const btn = document.getElementById("copyBtn");
+      const orig = btn.textContent;
+      btn.textContent = "⏳ Processing...";
+      btn.disabled = true;
+
+      try {
+        const result = await apiPost("autoCopy", { projectId: currentProjectId });
+        alert(result);
+      } catch (err) {
+        alert("Error: " + err.message);
+      } finally {
+        btn.textContent = orig;
+        btn.disabled = false;
+      }
+    }
+
+    loadProjects();
+  </script>
+</body>
+</html>

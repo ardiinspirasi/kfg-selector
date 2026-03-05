@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
+  <title>KFG Photo Selector</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0f1e; color: #fff; min-height: 100vh; padding-bottom: 280px; }
+
+    .header { background: linear-gradient(135deg, #0f172a, #1e293b); padding: 24px 16px; text-align: center; border-bottom: 1px solid #334155; }
+    .header h1 { font-size: 24px; margin-bottom: 6px; }
+    .header .sub { font-size: 14px; color: #94a3b8; }
+
+    .banner { background: linear-gradient(135deg, #1a3a2a, #0f2a1a); border: 1px solid #22c55e; border-radius: 12px; margin: 16px; padding: 14px 18px; display: flex; align-items: center; gap: 10px; font-size: 14px; color: #86efac; }
+
+    .loading-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; gap: 16px; color: #94a3b8; }
+    .spinner { border: 3px solid #1e293b; border-top: 3px solid #22c55e; border-radius: 50%; width: 48px; height: 48px; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; gap: 16px; color: #ef4444; text-align: center; padding: 20px; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; padding: 16px; }
+    .card { background: #0f172a; border-radius: 16px; padding: 12px 12px 16px; border: 2px solid transparent; position: relative; transition: all 0.2s; }
+    .card.selected { border-color: #22c55e; background: #1a2a3a; transform: translateY(-2px); }
+    .card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 12px; cursor: pointer; background: #1e293b; }
+    .check { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; background: #22c55e; border-radius: 50%; display: none; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; color: #022c22; z-index: 2; }
+    .card.selected .check { display: flex; }
+    .filename { font-size: 11px; margin: 8px 0 10px; text-align: center; color: #cbd5e1; word-break: break-all; }
+    .btn-card { width: 100%; padding: 10px; border: none; border-radius: 30px; background: #1e293b; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .card.selected .btn-card { background: #22c55e; color: #022c22; }
+
+    .footer { position: fixed; bottom: 0; left: 0; right: 0; background: #0f172a; border-top: 1px solid #334155; padding: 16px; z-index: 100; box-shadow: 0 -10px 30px rgba(0,0,0,0.5); }
+    .counter { font-size: 14px; color: #94a3b8; margin-bottom: 8px; display: flex; justify-content: space-between; }
+    .counter span { color: #22c55e; font-weight: 600; }
+    .progress { height: 6px; background: #1e293b; border-radius: 6px; overflow: hidden; margin-bottom: 12px; }
+    .bar { height: 100%; background: linear-gradient(90deg, #22c55e, #4ade80); width: 0%; transition: width 0.3s; }
+    .file-list { width: 100%; height: 80px; background: #0a0f1e; border: 1px solid #334155; border-radius: 12px; color: #fff; padding: 10px; font-size: 12px; font-family: monospace; resize: none; margin-bottom: 10px; }
+    .tools { display: flex; gap: 8px; margin-bottom: 10px; }
+    .tools button { flex: 1; padding: 12px; border: none; border-radius: 30px; background: #1e293b; color: #fff; font-weight: 600; font-size: 13px; cursor: pointer; }
+    .btn-submit { width: 100%; padding: 16px; border: none; border-radius: 30px; background: linear-gradient(135deg, #22c55e, #16a34a); color: #022c22; font-weight: 700; font-size: 16px; cursor: pointer; box-shadow: 0 4px 15px rgba(34,197,94,0.3); }
+    .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-submit.resubmit { background: linear-gradient(135deg, #f59e0b, #d97706); color: #422006; }
+
+    /* MODAL */
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+    .modal-content { position: relative; width: 100%; max-width: 1200px; display: flex; flex-direction: column; align-items: center; }
+    .zoom-container { width: 100%; height: 70vh; overflow: hidden; border-radius: 12px; background: #000; cursor: zoom-in; position: relative; }
+    .zoom-container.zoomed { cursor: grab; }
+    .zoom-container img { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s; transform-origin: center; pointer-events: none; }
+    .preview-check { position: absolute; top: 20px; right: 20px; width: 50px; height: 50px; background: #22c55e; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 28px; font-weight: bold; color: #022c22; z-index: 1001; }
+    .modal.selected .preview-check { display: flex; }
+    .zoom-controls { position: absolute; bottom: 20px; right: 20px; display: flex; gap: 10px; background: rgba(15,23,42,0.8); backdrop-filter: blur(10px); border-radius: 40px; padding: 8px; z-index: 1002; border: 1px solid #334155; }
+    .zoom-btn { width: 40px; height: 40px; border: none; border-radius: 50%; background: #22c55e; color: #022c22; font-size: 20px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .zoom-level { min-width: 60px; text-align: center; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 600; }
+    .modal-tools { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; justify-content: center; }
+    .modal-tools button { background: #1e293b; border: none; color: white; padding: 12px 24px; border-radius: 40px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .modal-tools button.pilih { background: #22c55e; color: #022c22; }
+    .modal-tools button.close-btn { background: #ef4444; }
+
+    .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 24px; border-radius: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); z-index: 2000; animation: slideDown 0.3s; border-left: 4px solid #22c55e; white-space: nowrap; }
+    .toast.error { border-left-color: #ef4444; }
+    @keyframes slideDown { from { transform: translate(-50%, -100%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+
+    .success-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 3000; padding: 20px; text-align: center; }
+    .success-overlay.show { display: flex; }
+    .success-overlay h2 { font-size: 28px; margin: 20px 0 10px; color: #22c55e; }
+    .success-overlay p { font-size: 16px; color: #94a3b8; margin-bottom: 30px; }
+    .btn-wa { padding: 16px 32px; border: none; border-radius: 40px; background: #25d366; color: white; font-size: 16px; font-weight: 700; cursor: pointer; }
+
+    @media (max-width: 480px) {
+      .grid { grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 10px; }
+      .card { padding: 8px 8px 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="loadingScreen" class="loading-screen">
+  <div class="spinner"></div>
+  <div>Memuat foto...</div>
+</div>
+
+<div id="errorScreen" class="error-screen" style="display:none">
+  <div style="font-size:48px">❌</div>
+  <h2>Terjadi Kesalahan</h2>
+  <p id="errorMsg">Project tidak ditemukan</p>
+</div>
+
+<div id="mainContent" style="display:none">
+  <div class="header">
+    <h1 id="projectName"></h1>
+    <div class="sub" id="clientName"></div>
+  </div>
+
+  <div id="submittedBanner" class="banner" style="display:none">
+    <span style="font-size:20px">✅</span>
+    <span>Kamu sudah pernah submit. Kamu tetap bisa submit ulang jika ingin mengubah pilihan.</span>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="footer">
+    <div class="counter">
+      <span>📸 Terpilih:</span>
+      <span id="counter">0 / 0</span>
+    </div>
+    <div class="progress"><div class="bar" id="bar"></div></div>
+    <textarea class="file-list" id="fileList" readonly placeholder="File yang dipilih akan muncul di sini..."></textarea>
+    <div class="tools">
+      <button onclick="copyList()">📋 Copy</button>
+      <button onclick="sendWA()">📲 WhatsApp</button>
+    </div>
+    <button class="btn-submit" id="submitBtn" onclick="submitSelection()">✅ SUBMIT FINAL</button>
+  </div>
+</div>
+
+<!-- MODAL ZOOM -->
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <div class="zoom-container" id="zoomContainer" ondblclick="toggleZoom(event)">
+      <img id="previewImg" src="" alt="Preview">
+      <div class="preview-check">✓</div>
+    </div>
+    <div class="zoom-controls">
+      <button class="zoom-btn" onclick="zoomOut(event)">−</button>
+      <span class="zoom-level" id="zoomLevel">1x</span>
+      <button class="zoom-btn" onclick="zoomIn(event)">+</button>
+    </div>
+  </div>
+  <div class="modal-tools">
+    <button onclick="prevImage()">⬅</button>
+    <button class="pilih" id="btnPreview" onclick="toggleFromPreview()">PILIH</button>
+    <button onclick="nextImage()">➡</button>
+    <button class="close-btn" onclick="closeModal()">✕</button>
+  </div>
+</div>
+
+<!-- SUCCESS OVERLAY -->
+<div class="success-overlay" id="successOverlay">
+  <div style="font-size:72px">🎉</div>
+  <h2>Pilihan Terkirim!</h2>
+  <p id="successMsg">Foto berhasil dikirim ke tim KFG.</p>
+  <button class="btn-wa" onclick="sendWAAfterSubmit()">📲 Kirim via WhatsApp</button>
+</div>
+
+<script src="config.js"></script>
+<script>
+  // ========== INIT ==========
+  const params = new URLSearchParams(window.location.search);
+  const projectId = params.get("id");
+
+  let images = [];
+  let maxSelect = 0;
+  let selected = [];
+  let currentIndex = 0;
+  let hasSubmitted = false;
+  let projectData = {};
+
+  let zoomLevel = 1, isZoomed = false, isDragging = false;
+  let startX, startY, panX = 0, panY = 0;
+
+  async function init() {
+    if (!projectId) {
+      showError("Link tidak valid. Parameter 'id' tidak ditemukan.");
+      return;
+    }
+
+    try {
+      // Load project info
+      const projRes = await api("getProject", { id: projectId });
+      projectData = projRes;
+      maxSelect = projRes.maxSelect;
+
+      document.getElementById("projectName").textContent = projRes.project;
+      document.getElementById("clientName").textContent = "Client: " + projRes.client;
+      document.getElementById("counter").textContent = `0 / ${maxSelect}`;
+      document.title = projRes.project + " - KFG";
+
+      // Check submitted
+      const submitted = await api("checkSubmitted", { id: projectId });
+      hasSubmitted = submitted;
+      if (hasSubmitted) {
+        document.getElementById("submittedBanner").style.display = "flex";
+        document.getElementById("submitBtn").textContent = "🔄 SUBMIT ULANG";
+        document.getElementById("submitBtn").classList.add("resubmit");
+      }
+
+      // Load images
+      const imgs = await api("getImages", { id: projectId });
+      images = imgs;
+
+      if (!images || images.length === 0) {
+        showError("Tidak ada foto di folder project ini.");
+        return;
+      }
+
+      // Show content
+      document.getElementById("loadingScreen").style.display = "none";
+      document.getElementById("mainContent").style.display = "block";
+
+      initGrid();
+      initDragEvents();
+
+    } catch (err) {
+      showError(err.message || "Gagal memuat project.");
+    }
+  }
+
+  async function api(action, params = {}) {
+    const url = new URL(API_URL);
+    url.searchParams.set("action", action);
+    Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+
+    const res = await fetch(url.toString());
+    const json = await res.json();
+
+    if (!json.success) throw new Error(json.error || "Terjadi kesalahan");
+    return json.data;
+  }
+
+  async function apiPost(action, body = {}) {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({ action, ...body })
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error || "Terjadi kesalahan");
+    return json.data;
+  }
+
+  function showError(msg) {
+    document.getElementById("loadingScreen").style.display = "none";
+    document.getElementById("errorScreen").style.display = "flex";
+    document.getElementById("errorMsg").textContent = msg;
+  }
+
+  // ========== GRID ==========
+  function initGrid() {
+    const grid = document.getElementById("grid");
+    images.forEach((img, i) => {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.dataset.index = i;
+      const safeName = img.name.replace(/['"<>]/g, '');
+      card.innerHTML = `
+        <img src="${img.url}" alt="${safeName}" onclick="openModal(${i})" loading="lazy">
+        <div class="check">✓</div>
+        <div class="filename">${safeName}</div>
+        <button class="btn-card" onclick="toggleSelect(this, '${safeName}', ${i})">Pilih</button>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  function toggleSelect(btn, name, index) {
+    const card = btn.closest(".card");
+    const idx = selected.indexOf(name);
+    if (idx > -1) {
+      selected.splice(idx, 1);
+      card.classList.remove("selected");
+      btn.textContent = "Pilih";
+      showToast("Foto dihapus");
+    } else {
+      if (selected.length >= maxSelect) { showToast(`Maksimal ${maxSelect} foto`, "error"); return; }
+      selected.push(name);
+      card.classList.add("selected");
+      btn.textContent = "Dipilih";
+      showToast("Foto dipilih ✓");
+    }
+    updateUI();
+    if (document.getElementById("modal").style.display === "flex" && images[currentIndex]?.name === name) syncModalState();
+  }
+
+  function updateUI() {
+    document.getElementById("counter").textContent = `${selected.length} / ${maxSelect}`;
+    document.getElementById("bar").style.width = (selected.length / maxSelect) * 100 + "%";
+    document.getElementById("fileList").value = selected.join("\n");
+  }
+
+  // ========== MODAL ==========
+  function openModal(index) {
+    currentIndex = index;
+    document.getElementById("previewImg").src = images[index].fullUrl || images[index].url;
+    document.getElementById("modal").style.display = "flex";
+    document.body.style.overflow = "hidden";
+    resetZoom();
+    syncModalState();
+  }
+
+  function closeModal() {
+    document.getElementById("modal").style.display = "none";
+    document.body.style.overflow = "";
+    resetZoom();
+  }
+
+  function nextImage() { if (currentIndex < images.length - 1) openModal(currentIndex + 1); else showToast("Foto terakhir"); }
+  function prevImage() { if (currentIndex > 0) openModal(currentIndex - 1); else showToast("Foto pertama"); }
+
+  function syncModalState() {
+    const modal = document.getElementById("modal");
+    const btnPreview = document.getElementById("btnPreview");
+    const name = images[currentIndex]?.name;
+    if (selected.includes(name)) {
+      modal.classList.add("selected");
+      btnPreview.textContent = "DIPILIH";
+      btnPreview.classList.add("pilih");
+    } else {
+      modal.classList.remove("selected");
+      btnPreview.textContent = "PILIH";
+      btnPreview.classList.remove("pilih");
+    }
+  }
+
+  function toggleFromPreview() {
+    const name = images[currentIndex]?.name;
+    const cards = document.querySelectorAll(".card");
+    const card = cards[currentIndex];
+    const btn = card?.querySelector(".btn-card");
+    if (!card || !btn) return;
+    if (selected.includes(name)) {
+      selected = selected.filter(n => n !== name);
+      card.classList.remove("selected");
+      btn.textContent = "Pilih";
+    } else {
+      if (selected.length >= maxSelect) { showToast(`Maksimal ${maxSelect} foto`, "error"); return; }
+      selected.push(name);
+      card.classList.add("selected");
+      btn.textContent = "Dipilih";
+    }
+    updateUI();
+    syncModalState();
+  }
+
+  // ========== ZOOM ==========
+  function zoomIn(e) { if (e) e.stopPropagation(); if (zoomLevel < 3) { zoomLevel += 0.5; applyZoom(); } }
+  function zoomOut(e) { if (e) e.stopPropagation(); if (zoomLevel > 1) { zoomLevel -= 0.5; applyZoom(); } else resetPan(); }
+  function applyZoom() {
+    zoomLevel = Math.min(Math.max(zoomLevel, 1), 3);
+    document.getElementById("zoomLevel").textContent = zoomLevel + "x";
+    const zc = document.getElementById("zoomContainer");
+    if (zoomLevel > 1) { zc.classList.add("zoomed"); isZoomed = true; }
+    else { zc.classList.remove("zoomed"); isZoomed = false; resetPan(); }
+    updateTransform();
+  }
+  function resetZoom() { zoomLevel = 1; panX = 0; panY = 0; isZoomed = false; document.getElementById("zoomContainer").classList.remove("zoomed"); document.getElementById("zoomLevel").textContent = "1x"; updateTransform(); }
+  function resetPan() { panX = 0; panY = 0; updateTransform(); }
+  function updateTransform() { document.getElementById("previewImg").style.transform = `translate(${panX}px,${panY}px) scale(${zoomLevel})`; }
+  function toggleZoom(e) { e.preventDefault(); zoomLevel = zoomLevel === 1 ? 2 : 1; applyZoom(); }
+
+  function initDragEvents() {
+    const zc = document.getElementById("zoomContainer");
+    zc.addEventListener("mousedown", e => { if (!isZoomed) return; e.preventDefault(); isDragging = true; startX = e.clientX - panX; startY = e.clientY - panY; });
+    window.addEventListener("mousemove", e => { if (!isDragging || !isZoomed) return; panX = e.clientX - startX; panY = e.clientY - startY; updateTransform(); });
+    window.addEventListener("mouseup", () => isDragging = false);
+    zc.addEventListener("touchstart", e => { if (!isZoomed) return; e.preventDefault(); isDragging = true; startX = e.touches[0].clientX - panX; startY = e.touches[0].clientY - panY; }, { passive: false });
+    window.addEventListener("touchmove", e => { if (!isDragging || !isZoomed) return; e.preventDefault(); panX = e.touches[0].clientX - startX; panY = e.touches[0].clientY - startY; updateTransform(); }, { passive: false });
+    window.addEventListener("touchend", () => isDragging = false);
+
+    // Swipe
+    let tx = 0;
+    const modal = document.getElementById("modal");
+    modal.addEventListener("touchstart", e => { if (!isZoomed) tx = e.changedTouches[0].clientX; });
+    modal.addEventListener("touchend", e => {
+      if (isZoomed || !tx) return;
+      const diff = tx - e.changedTouches[0].clientX;
+      if (Math.abs(diff) > 50) { if (diff > 0) nextImage(); else prevImage(); }
+      tx = 0;
+    });
+  }
+
+  // ========== TOAST ==========
+  function showToast(message, type = "info") {
+    const toast = document.createElement("div");
+    toast.className = "toast" + (type === "error" ? " error" : "");
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2500);
+  }
+
+  // ========== ACTIONS ==========
+  function copyList() {
+    if (!selected.length) { showToast("Belum ada file dipilih", "error"); return; }
+    navigator.clipboard.writeText(selected.join("\n")).then(() => showToast("✅ Daftar disalin!")).catch(() => showToast("❌ Gagal menyalin", "error"));
+  }
+
+  function sendWA() {
+    if (!selected.length) { showToast("Belum ada file dipilih", "error"); return; }
+    const text = `Halo KFG,\n\nSaya memilih foto untuk project *${projectData.project}*:\n\n${selected.join("\n")}\n\nTerima kasih 🙏`;
+    window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank");
+  }
+
+  function sendWAAfterSubmit() {
+    const text = `Halo KFG,\n\nSaya sudah submit pilihan foto untuk project *${projectData.project}*:\n\n${selected.join("\n")}\n\nTerima kasih 🙏`;
+    window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank");
+  }
+
+  async function submitSelection() {
+    if (!selected.length) { showToast("Pilih foto dulu ya 😊", "error"); return; }
+    if (!confirm(`${hasSubmitted ? "⚠️ Kamu sudah pernah submit. " : ""}Kirim ${selected.length} foto?`)) return;
+
+    const btn = document.getElementById("submitBtn");
+    btn.disabled = true;
+    btn.textContent = "⏳ Mengirim...";
+
+    try {
+      await apiPost("saveSelection", { projectId, list: selected });
+      hasSubmitted = true;
+      btn.disabled = false;
+      btn.textContent = "🔄 SUBMIT ULANG";
+      btn.classList.add("resubmit");
+
+      document.getElementById("successMsg").textContent = `${selected.length} foto berhasil dikirim ke tim KFG. Terima kasih!`;
+      document.getElementById("successOverlay").classList.add("show");
+      setTimeout(() => document.getElementById("successOverlay").classList.remove("show"), 8000);
+    } catch (err) {
+      showToast("❌ " + (err.message || "Gagal mengirim"), "error");
+      btn.disabled = false;
+      btn.textContent = hasSubmitted ? "🔄 SUBMIT ULANG" : "✅ SUBMIT FINAL";
+    }
+  }
+
+  // Keyboard
+  document.addEventListener("keydown", e => {
+    if (document.getElementById("modal").style.display !== "flex") return;
+    if (e.key === "ArrowLeft") { e.preventDefault(); prevImage(); }
+    if (e.key === "ArrowRight") { e.preventDefault(); nextImage(); }
+    if (e.key === "Escape") closeModal();
+    if (e.key === "+" || e.key === "=") zoomIn();
+    if (e.key === "-") zoomOut();
+    if (e.key === " ") { e.preventDefault(); toggleFromPreview(); }
+  });
+
+  document.getElementById("successOverlay").addEventListener("click", function(e) {
+    if (e.target === this) this.classList.remove("show");
+  });
+
+  init();
+</script>
+</body>
+</html>
