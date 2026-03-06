@@ -33,6 +33,22 @@
     .loading { text-align: center; padding: 40px; }
     .spinner { border: 3px solid #1e293b; border-top: 3px solid #22c55e; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 15px; }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    .btn-delete {
+      margin: 8px 16px 16px;
+      width: calc(100% - 32px);
+      padding: 10px;
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.2);
+      color: #ef4444;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-delete:hover { background: rgba(239,68,68,0.2); }
+
     @media (max-width: 768px) {
       .container { flex-direction: column; }
       .sidebar { width: 100%; max-height: 300px; }
@@ -41,6 +57,18 @@
   </style>
 </head>
 <body>
+  <!-- NAVBAR -->
+  <div style="background:#0f172a; border-bottom:1px solid #1e293b; padding:12px 20px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; position:sticky; top:0; z-index:100;">
+    <div style="display:flex; align-items:center; gap:8px; font-weight:700; font-size:16px;">
+      📋 KFG Final Dashboard
+    </div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <a href="index.html" style="padding:8px 16px; background:#1e293b; color:#fff; border-radius:8px; text-decoration:none; font-size:13px; font-weight:600;">🏠 Dashboard</a>
+      <a href="create.html" target="_blank" style="padding:8px 16px; background:#3b82f6; color:#fff; border-radius:8px; text-decoration:none; font-size:13px; font-weight:600;">➕ Buat Project</a>
+      <a href="admin.html" target="_blank" style="padding:8px 16px; background:#1e293b; color:#fff; border-radius:8px; text-decoration:none; font-size:13px; font-weight:600;">⚙️ Kelola Project</a>
+    </div>
+  </div>
+
   <div class="container">
     <div class="sidebar">
       <div class="sidebar-header">
@@ -91,6 +119,13 @@
           item.innerHTML = `<div class="project-name">${esc(p.project)}</div><div class="project-meta"><span>👤 ${esc(p.client)}</span><span>📸 ${p.total || 0} pilihan</span></div>`;
           item.onclick = () => selectProject(p.id, p.project, p.client, p.total);
           listEl.appendChild(item);
+
+          // Tombol hapus per project
+          const delBtn = document.createElement("button");
+          delBtn.className = "btn-delete";
+          delBtn.textContent = "🗑️ Hapus Project";
+          delBtn.onclick = (e) => { e.stopPropagation(); deleteProject(p.id, p.project); };
+          listEl.appendChild(delBtn);
         });
       } catch (err) {
         listEl.innerHTML = `<div class="empty-state" style="color:#ef4444">❌ ${err.message}</div>`;
@@ -160,6 +195,23 @@
       } finally {
         btn.textContent = orig;
         btn.disabled = false;
+      }
+    }
+
+    async function deleteProject(id, name) {
+      if (!confirm(`⚠️ Yakin hapus project "${name}"?\nData seleksi juga akan hilang.`)) return;
+      try {
+        await apiCall("deleteProject", { projectId: id });
+        alert("✅ Project berhasil dihapus");
+        if (currentProjectId === id) {
+          currentProjectId = "";
+          document.getElementById("projectTitle").textContent = "Pilih Project di Samping";
+          document.getElementById("projectStats").textContent = "";
+          document.getElementById("selectionContent").innerHTML = `<div class="empty-state">👈 Pilih project untuk melihat hasil seleksi</div>`;
+        }
+        loadProjects();
+      } catch (err) {
+        alert("❌ " + err.message);
       }
     }
 
