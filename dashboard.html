@@ -596,32 +596,22 @@
   <script>
     async function loadDashboard() {
       try {
-        const projects = await apiCall("getProjects");
+        // Hanya 2 request: getProjects + getAllProjects (sudah include total)
+        const [projects, allProjects] = await Promise.all([
+          apiCall("getProjects"),
+          apiCall("getAllProjects")
+        ]);
 
-        // Stats
+        // Hitung stats dari data yang sudah ada
+        const totalSelections = allProjects.reduce((sum, p) => sum + (p.total || 0), 0);
+        const submitted = allProjects.filter(p => (p.total || 0) > 0).length;
+        const pending = projects.length - submitted;
+
         document.getElementById("statProjects").textContent = projects.length;
-
-        // Count submitted vs pending
-        let submitted = 0;
-        let totalSelections = 0;
-
-        for (const p of projects) {
-          const isSubmitted = await apiCall("checkSubmitted", { id: p.id });
-          if (isSubmitted) submitted++;
-        }
-
-        // Get all selections count
-        const allProjects = await apiCall("getAllProjects");
-        allProjects.forEach(p => totalSelections += (p.total || 0));
-
         document.getElementById("statSelections").textContent = totalSelections;
         document.getElementById("statSubmitted").textContent = submitted;
-        document.getElementById("statPending").textContent = projects.length - submitted;
-
-        // Sheet status
+        document.getElementById("statPending").textContent = pending;
         document.getElementById("sheetStatus").textContent = "terhubung";
-
-        // Last update
         document.getElementById("lastUpdate").textContent = new Date().toLocaleTimeString("id-ID");
 
         // Recent projects (last 6)
@@ -633,6 +623,10 @@
           return;
         }
 
+        // Merge total dari allProjects
+        const totalMap = {};
+        allProjects.forEach(p => totalMap[p.id] = p.total || 0);
+
         listEl.innerHTML = recent.map(p => `
           <a href="client.html?id=${p.id}" class="project-row" target="_blank">
             <div class="project-avatar">${(p.project || "?")[0].toUpperCase()}</div>
@@ -640,7 +634,7 @@
               <div class="project-name">${esc(p.project)}</div>
               <div class="project-client">👤 ${esc(p.client)}</div>
             </div>
-            <div class="project-count">Max ${p.maxSelect}</div>
+            <div class="project-count">${totalMap[p.id] > 0 ? "✅ " + totalMap[p.id] + " foto" : "⏳ Belum"}</div>
           </a>
         `).join("");
 
