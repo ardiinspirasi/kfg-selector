@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
+  <title>KFG — Galeri Foto</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #080c14;
+      --surface: #0d1420;
+      --surface2: #111827;
+      --border: #1e2d40;
+      --border2: #2d3a52;
+      --accent: #22c55e;
+      --accent-dim: rgba(34,197,94,0.1);
+      --accent-border: rgba(34,197,94,0.3);
+      --wa: #25d366;
+      --text: #f1f5f9;
+      --soft: #94a3b8;
+      --muted: #4a5568;
+      --syne: 'Syne', sans-serif;
+      --dm: 'DM Sans', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--dm);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: 120px;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(8,12,20,0.9);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 16px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 28px; height: 28px;
+      background: var(--accent);
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--syne);
+      font-size: 10px;
+      font-weight: 800;
+      color: #022c22;
+      flex-shrink: 0;
+    }
+
+    .brand-info { min-width: 0; }
+
+    .brand-project {
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .brand-client {
+      font-size: 11px;
+      color: var(--soft);
+    }
+
+    .header-right {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .hbtn {
+      padding: 7px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--soft);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: var(--dm);
+      white-space: nowrap;
+    }
+
+    .hbtn:hover { border-color: var(--border2); color: var(--text); }
+    .hbtn.accent { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+    .hbtn.accent:hover { background: rgba(34,197,94,0.2); }
+
+    /* ── META BAR ── */
+    .meta-bar {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .meta-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .filter-tab {
+      padding: 6px 12px;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--soft);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .filter-tab.on { background: var(--accent); border-color: var(--accent); color: #022c22; }
+    .filter-tab:hover:not(.on) { border-color: var(--border2); color: var(--text); }
+
+    .cnt { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; background: rgba(255,255,255,0.1); border-radius: 40px; font-size: 10px; padding: 0 4px; margin-left: 4px; }
+    .filter-tab.on .cnt { background: rgba(2,44,34,0.3); }
+
+    .meta-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .search-wrap { position: relative; }
+    .search-wrap input {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 7px 10px 7px 30px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-family: var(--dm);
+      width: 180px;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .search-wrap input:focus { border-color: var(--accent); width: 220px; }
+    .search-wrap input::placeholder { color: var(--muted); }
+    .search-icon { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); font-size: 13px; pointer-events: none; }
+
+    /* ── GRID ── */
+    .grid-wrap {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 4px 12px 20px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 6px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+      transition: border-color 0.15s, transform 0.15s;
+    }
+
+    .card:hover { border-color: var(--border2); transform: translateY(-1px); }
+    .card.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+
+    .card-img {
+      aspect-ratio: 1;
+      overflow: hidden;
+      background: var(--surface2);
+      cursor: pointer;
+      position: relative;
+    }
+
+    .card-img img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.25s;
+    }
+
+    .card:hover .card-img img { transform: scale(1.05); }
+
+    /* selection tick */
+    .tick {
+      position: absolute;
+      top: 6px; left: 6px;
+      width: 20px; height: 20px;
+      background: var(--accent);
+      border-radius: 50%;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 800;
+      color: #022c22;
+      z-index: 3;
+      box-shadow: 0 2px 8px rgba(34,197,94,0.5);
+    }
+
+    .card.sel .tick { display: flex; }
+
+    /* hover overlay */
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.88) 0%, transparent 55%);
+      opacity: 0;
+      transition: opacity 0.18s;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 6px;
+      gap: 4px;
+    }
+
+    .card:hover .overlay { opacity: 1; }
+
+    .ov-row { display: flex; gap: 4px; }
+
+    .ob {
+      flex: 1;
+      padding: 5px 2px;
+      border: none;
+      border-radius: 5px;
+      font-size: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      transition: filter 0.15s;
+      font-family: var(--dm);
+    }
+
+    .ob:hover { filter: brightness(1.15); }
+    .ob-sel { background: rgba(34,197,94,0.2); color: #4ade80; border: 1px solid rgba(34,197,94,0.35); }
+    .ob-dl  { background: var(--accent); color: #022c22; }
+    .ob-wa  { background: var(--wa); color: white; }
+    .ob-drive { background: rgba(255,255,255,0.12); color: white; }
+
+    /* card footer */
+    .card-foot {
+      padding: 6px 8px;
+      border-top: 1px solid var(--border);
+    }
+
+    .card-name {
+      font-size: 10px;
+      font-family: monospace;
+      color: var(--soft);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ── STATES ── */
+    .screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 60vh;
+      gap: 14px;
+      color: var(--soft);
+      text-align: center;
+      padding: 24px;
+    }
+
+    .spinner {
+      width: 36px; height: 36px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .empty-search {
+      display: none;
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    /* ── BOTTOM BAR ── */
+    .bottom {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: rgba(8,12,20,0.97);
+      backdrop-filter: blur(20px);
+      border-top: 1px solid var(--border);
+      padding: 10px 16px;
+      z-index: 200;
+      display: none;
+    }
+
+    .bottom.show { display: block; }
+
+    .bottom-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .bot-count {
+      font-size: 13px;
+      color: var(--soft);
+      flex: 1;
+      min-width: 100px;
+    }
+
+    .bot-count strong { font-family: monospace; color: var(--accent); font-size: 15px; }
+
+    .bb {
+      padding: 9px 18px;
+      border: none;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: var(--dm);
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .bb-ghost { background: var(--surface2); color: var(--soft); border: 1px solid var(--border); }
+    .bb-ghost:hover { color: var(--text); }
+    .bb-green { background: var(--accent); color: #022c22; }
+    .bb-green:hover { background: #16a34a; }
+    .bb-wa { background: var(--wa); color: white; }
+    .bb-wa:hover { filter: brightness(1.1); }
+
+    /* ── LIGHTBOX ── */
+    .lb {
+      position: fixed; inset: 0;
+      background: rgba(4,7,14,0.98);
+      z-index: 1000;
+      display: none;
+      flex-direction: column;
+    }
+
+    .lb.open { display: flex; }
+
+    .lb-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+      gap: 10px;
+    }
+
+    .lb-name {
+      font-family: monospace;
+      font-size: 12px;
+      color: var(--soft);
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .lb-btns { display: flex; gap: 6px; flex-shrink: 0; }
+
+    .lbb {
+      padding: 7px 14px;
+      border: none;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: var(--dm);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s;
+    }
+
+    .lbb-drive { background: var(--surface2); border: 1px solid var(--border); color: var(--soft); }
+    .lbb-drive:hover { color: var(--text); }
+    .lbb-wa { background: var(--wa); color: white; }
+    .lbb-dl  { background: var(--accent); color: #022c22; }
+    .lbb-x   { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.25); color: #ef4444; }
+
+    .lb-body {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .lb-body img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      user-select: none;
+    }
+
+    .lb-arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 40px; height: 40px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      color: white;
+      cursor: pointer;
+      transition: background 0.15s;
+      backdrop-filter: blur(6px);
+    }
+
+    .lb-arrow:hover { background: rgba(255,255,255,0.15); }
+    .lb-prev { left: 12px; }
+    .lb-next { right: 12px; }
+
+    .lb-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+      gap: 10px;
+    }
+
+    .lb-counter {
+      font-family: monospace;
+      font-size: 12px;
+      color: var(--soft);
+    }
+
+    .lb-sel {
+      padding: 8px 18px;
+      border: 1px solid rgba(34,197,94,0.3);
+      border-radius: 8px;
+      background: var(--accent-dim);
+      color: #4ade80;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: var(--dm);
+      transition: all 0.15s;
+    }
+
+    .lb-sel.active { background: var(--accent); border-color: var(--accent); color: #022c22; }
+
+    /* ── DOWNLOAD PROGRESS ── */
+    .dl-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.88);
+      z-index: 5000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .dl-overlay.show { display: flex; }
+
+    .dl-box {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 20px;
+      padding: 36px 44px;
+      text-align: center;
+      min-width: 300px;
+    }
+
+    .dl-title { font-family: var(--syne); font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+    .dl-sub { font-size: 13px; color: var(--soft); margin-bottom: 24px; }
+    .dl-track { height: 5px; background: var(--border); border-radius: 5px; overflow: hidden; }
+    .dl-fill { height: 100%; background: var(--accent); border-radius: 5px; transition: width 0.3s; width: 0; }
+    .dl-pct { font-family: monospace; font-size: 28px; font-weight: 700; color: var(--accent); margin-top: 16px; }
+
+    /* ── TOAST ── */
+    .toast-wrap { position: fixed; top: 64px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; align-items: center; gap: 5px; pointer-events: none; }
+    .toast { background: var(--surface2); border: 1px solid var(--border2); color: var(--text); padding: 9px 18px; border-radius: 40px; font-size: 12px; font-weight: 500; white-space: nowrap; box-shadow: 0 6px 20px rgba(0,0,0,0.5); animation: tIn 0.22s ease; }
+    @keyframes tIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 480px) {
+      .grid { grid-template-columns: repeat(3, 1fr); gap: 4px; }
+      .lbb span { display: none; }
+      .lb-btns { gap: 4px; }
+      .lbb { padding: 7px 10px; }
+      .search-wrap input { width: 120px; }
+      .search-wrap input:focus { width: 150px; }
+    }
+
+    @media (min-width: 1200px) {
+      .grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<!-- DOWNLOAD PROGRESS -->
+<div class="dl-overlay" id="dlOverlay">
+  <div class="dl-box">
+    <div class="dl-title">📥 Download Foto</div>
+    <div class="dl-sub" id="dlSub">Menyiapkan...</div>
+    <div class="dl-track"><div class="dl-fill" id="dlFill"></div></div>
+    <div class="dl-pct" id="dlPct">0%</div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-inner">
+    <div class="header-brand">
+      <div class="brand-mark">KFG</div>
+      <div class="brand-info">
+        <div class="brand-project" id="hProject">Memuat...</div>
+        <div class="brand-client" id="hClient"></div>
+      </div>
+    </div>
+    <div class="header-right">
+      <button class="hbtn" onclick="dlAllVisible()">⬇ Download Semua</button>
+      <button class="hbtn accent" onclick="shareWAAll()">📲 WA</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOADING / ERROR -->
+<div id="loadScreen" class="screen">
+  <div class="spinner"></div>
+  <div>Memuat galeri...</div>
+</div>
+
+<div id="errScreen" class="screen" style="display:none">
+  <div style="font-size:44px">⚠️</div>
+  <div style="font-size:17px; font-weight:600; color:#ef4444">Gagal Memuat</div>
+  <div id="errMsg" style="max-width:320px; line-height:1.6; font-size:14px"></div>
+</div>
+
+<!-- META BAR + GRID -->
+<div id="mainWrap" style="display:none">
+  <div class="meta-bar">
+    <div class="meta-left">
+      <button class="filter-tab on" id="tabAll" onclick="setFilter('all')">
+        Semua <span class="cnt" id="cntAll">0</span>
+      </button>
+      <button class="filter-tab" id="tabSel" onclick="setFilter('sel')">
+        Dipilih <span class="cnt" id="cntSel">0</span>
+      </button>
+    </div>
+    <div class="meta-right">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchQ" placeholder="Cari file..." oninput="applyFilter()">
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-wrap">
+    <div class="grid" id="grid"></div>
+    <div class="empty-search" id="emptySearch">Tidak ada foto yang cocok 🔍</div>
+  </div>
+</div>
+
+<!-- BOTTOM BAR -->
+<div class="bottom" id="bottomBar">
+  <div class="bottom-inner">
+    <div class="bot-count"><strong id="selCount">0</strong> foto dipilih</div>
+    <button class="bb bb-ghost" onclick="clearSel()">✕ Batal</button>
+    <button class="bb bb-green" onclick="dlSelected()">⬇ Download Pilihan</button>
+    <button class="bb bb-wa" onclick="shareWASelected()">📲 Share WA</button>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lb" id="lb">
+  <div class="lb-top">
+    <div class="lb-name" id="lbName"></div>
+    <div class="lb-btns">
+      <button class="lbb lbb-drive" onclick="openDriveLb()">🔗 <span>Drive</span></button>
+      <button class="lbb lbb-wa" onclick="shareWALb()">📲 <span>WA</span></button>
+      <button class="lbb lbb-dl" onclick="dlLb()">⬇ <span>Download</span></button>
+      <button class="lbb lbb-x" onclick="closeLb()">✕</button>
+    </div>
+  </div>
+  <div class="lb-body">
+    <img id="lbImg" src="" alt="">
+    <button class="lb-arrow lb-prev" onclick="lbPrev()">←</button>
+    <button class="lb-arrow lb-next" onclick="lbNext()">→</button>
+  </div>
+  <div class="lb-bottom">
+    <div class="lb-counter" id="lbCtr">1 / 1</div>
+    <button class="lb-sel" id="lbSelBtn" onclick="toggleLbSel()">☐ Pilih Foto</button>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script>
+  // ── STATE ──
+  const params  = new URLSearchParams(location.search);
+  const pid     = params.get("id");
+  let images    = [];
+  let selected  = new Set();
+  let filter    = "all";
+  let lbIdx     = 0;
+  let projData  = {};
+
+  // ── INIT ──
+  async function init() {
+    if (!pid) return showErr("Link tidak valid — parameter 'id' tidak ada.");
+    try {
+      const [proj, imgs] = await Promise.all([
+        apiGet("getPreviewProject", { id: pid }),
+        apiGet("getPreviewImages",  { id: pid })
+      ]);
+      projData = proj;
+      images   = imgs || [];
+
+      document.getElementById("hProject").textContent = proj.project;
+      document.getElementById("hClient").textContent  = "Client: " + proj.client;
+      document.title = proj.project + " — KFG Galeri";
+
+      document.getElementById("cntAll").textContent = images.length;
+
+      if (!images.length) return showErr("Tidak ada foto di folder ini.");
+
+      document.getElementById("loadScreen").style.display = "none";
+      document.getElementById("mainWrap").style.display   = "block";
+      buildGrid();
+      applyFilter();
+    } catch(e) {
+      showErr(e.message || "Gagal memuat galeri.");
+    }
+  }
+
+  async function apiGet(action, p = {}) {
+    const url = new URL(API_URL);
+    url.searchParams.set("action", action);
+    Object.entries(p).forEach(([k,v]) => url.searchParams.set(k,v));
+    const res  = await fetch(url);
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error);
+    return json.data;
+  }
+
+  function showErr(msg) {
+    document.getElementById("loadScreen").style.display = "none";
+    document.getElementById("errScreen").style.display  = "flex";
+    document.getElementById("errMsg").textContent       = msg;
+  }
+
+  // ── GRID ──
+  function buildGrid() {
+    const grid = document.getElementById("grid");
+    grid.innerHTML = "";
+    images.forEach((img, i) => {
+      const c = document.createElement("div");
+      c.className    = "card";
+      c.dataset.idx  = i;
+      c.innerHTML = `
+        <div class="card-img" onclick="openLb(${i})">
+          <img src="${thumb(img.url)}" loading="lazy" alt="${esc(img.name)}">
+          <div class="tick">✓</div>
+          <div class="overlay">
+            <div class="ov-row">
+              <button class="ob ob-sel" onclick="toggleCard(event,${i})">☐ Pilih</button>
+              <button class="ob ob-drive" onclick="driveOne(event,${i})">🔗</button>
+            </div>
+            <div class="ov-row">
+              <button class="ob ob-dl" onclick="dlOne(event,${i})">⬇ DL</button>
+              <button class="ob ob-wa" onclick="waOne(event,${i})">📲</button>
+            </div>
+          </div>
+        </div>
+        <div class="card-foot">
+          <div class="card-name" title="${esc(img.name)}">${esc(img.name)}</div>
+        </div>
+      `;
+      grid.appendChild(c);
+    });
+  }
+
+  function thumb(url) {
+    const w = window.innerWidth;
+    const sz = w > 900 ? "w320" : "w240";
+    return url.replace("sz=w800", "sz=" + sz);
+  }
+
+  // ── FILTER ──
+  function setFilter(f) {
+    filter = f;
+    document.getElementById("tabAll").classList.toggle("on", f === "all");
+    document.getElementById("tabSel").classList.toggle("on", f === "sel");
+    applyFilter();
+  }
+
+  function applyFilter() {
+    const q = document.getElementById("searchQ").value.toLowerCase().trim();
+    let vis = 0;
+    document.querySelectorAll(".card").forEach(c => {
+      const i   = parseInt(c.dataset.idx);
+      const img = images[i];
+      const mq  = !q || img.name.toLowerCase().includes(q);
+      const mf  = filter === "all" || selected.has(i);
+      const show = mq && mf;
+      c.style.display = show ? "" : "none";
+      if (show) vis++;
+    });
+    document.getElementById("emptySearch").style.display = vis ? "none" : "block";
+    document.getElementById("cntSel").textContent   = selected.size;
+    document.getElementById("selCount").textContent  = selected.size;
+    document.getElementById("bottomBar").classList.toggle("show", selected.size > 0);
+  }
+
+  // ── SELECTION ──
+  function _toggle(i) {
+    const c = document.querySelector(`.card[data-idx="${i}"]`);
+    if (selected.has(i)) {
+      selected.delete(i);
+      c?.classList.remove("sel");
+      const b = c?.querySelector(".ob-sel");
+      if (b) b.textContent = "☐ Pilih";
+    } else {
+      selected.add(i);
+      c?.classList.add("sel");
+      const b = c?.querySelector(".ob-sel");
+      if (b) b.textContent = "✓ Dipilih";
+    }
+    applyFilter();
+    syncLbSel();
+  }
+
+  function toggleCard(e, i) { e.stopPropagation(); _toggle(i); }
+
+  function clearSel() {
+    [...selected].forEach(i => {
+      const c = document.querySelector(`.card[data-idx="${i}"]`);
+      c?.classList.remove("sel");
+      const b = c?.querySelector(".ob-sel");
+      if (b) b.textContent = "☐ Pilih";
+    });
+    selected.clear();
+    applyFilter();
+  }
+
+  // ── LIGHTBOX ──
+  function openLb(i) {
+    lbIdx = i;
+    renderLb();
+    document.getElementById("lb").classList.add("open");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeLb() {
+    document.getElementById("lb").classList.remove("open");
+    document.body.style.overflow = "";
+  }
+
+  function renderLb() {
+    const img = images[lbIdx];
+    const full = img.fullUrl || img.url.replace("sz=w800","sz=w1600");
+    document.getElementById("lbImg").src  = full;
+    document.getElementById("lbName").textContent = img.name;
+    document.getElementById("lbCtr").textContent  = `${lbIdx+1} / ${images.length}`;
+    syncLbSel();
+  }
+
+  function syncLbSel() {
+    const b = document.getElementById("lbSelBtn");
+    if (!b) return;
+    const on = selected.has(lbIdx);
+    b.textContent = on ? "✓ Dipilih" : "☐ Pilih Foto";
+    b.classList.toggle("active", on);
+  }
+
+  function lbPrev() { if (lbIdx > 0) { lbIdx--; renderLb(); } }
+  function lbNext() { if (lbIdx < images.length - 1) { lbIdx++; renderLb(); } }
+  function toggleLbSel() { _toggle(lbIdx); }
+
+  function openDriveLb() { openDriveFile(images[lbIdx].url); }
+  function driveOne(e, i) { e.stopPropagation(); openDriveFile(images[i].url); }
+  function openDriveFile(url) {
+    const id = extractId(url);
+    if (id) window.open(`https://drive.google.com/file/d/${id}/view`, "_blank");
+  }
+
+  // ── DOWNLOAD ──
+  function extractId(url) {
+    const m = url.match(/[?&]id=([-\w]+)/) || url.match(/\/d\/([-\w]+)/);
+    return m ? m[1] : null;
+  }
+
+  async function triggerDl(img) {
+    const id  = extractId(img.url);
+    const url = id
+      ? `https://drive.google.com/uc?export=download&id=${id}`
+      : img.fullUrl || img.url;
+    const a = Object.assign(document.createElement("a"), { href: url, download: img.name, target: "_blank" });
+    a.click();
+  }
+
+  function dlOne(e, i) { e.stopPropagation(); toast("⬇ Mengunduh..."); triggerDl(images[i]); }
+  function dlLb() { toast("⬇ Mengunduh..."); triggerDl(images[lbIdx]); }
+
+  async function dlBatch(idxArr, label) {
+    const ov   = document.getElementById("dlOverlay");
+    const fill = document.getElementById("dlFill");
+    const pct  = document.getElementById("dlPct");
+    const sub  = document.getElementById("dlSub");
+    ov.classList.add("show");
+
+    for (let n = 0; n < idxArr.length; n++) {
+      const img = images[idxArr[n]];
+      sub.textContent = `${n+1} / ${idxArr.length}: ${img.name}`;
+      const p = Math.round(((n+1)/idxArr.length)*100);
+      fill.style.width = p + "%";
+      pct.textContent  = p + "%";
+      await triggerDl(img);
+      await new Promise(r => setTimeout(r, 900));
+    }
+
+    ov.classList.remove("show");
+    toast(`✅ ${idxArr.length} foto selesai diunduh!`);
+  }
+
+  async function dlSelected() {
+    if (!selected.size) { toast("Pilih foto dulu"); return; }
+    await dlBatch([...selected], "pilihan");
+  }
+
+  async function dlAllVisible() {
+    const arr = [...document.querySelectorAll(".card")]
+      .filter(c => c.style.display !== "none")
+      .map(c => parseInt(c.dataset.idx));
+    if (!arr.length) { toast("Tidak ada foto"); return; }
+    if (!confirm(`Download ${arr.length} foto? Browser akan mengunduh satu per satu.`)) return;
+    await dlBatch(arr, "semua");
+  }
+
+  // ── WHATSAPP ──
+  function waOne(e, i) {
+    e.stopPropagation();
+    const img = images[i];
+    const id  = extractId(img.url);
+    const link = id ? `https://drive.google.com/file/d/${id}/view` : img.url;
+    const txt = `Halo KFG 👋\n\nFoto dari project *${projData.project}*:\n\n📄 ${img.name}\n🔗 ${link}`;
+    window.open("https://wa.me/?text=" + encodeURIComponent(txt), "_blank");
+  }
+
+  function shareWALb() { waOne({ stopPropagation:()=>{} }, lbIdx); }
+
+  function shareWASelected() {
+    if (!selected.size) { toast("Pilih foto dulu"); return; }
+    const lines = [...selected].slice(0,25).map(i => {
+      const img = images[i];
+      const id  = extractId(img.url);
+      const lnk = id ? `https://drive.google.com/file/d/${id}/view` : img.url;
+      return `• ${img.name}\n  ${lnk}`;
+    });
+    if (selected.size > 25) lines.push(`\n... dan ${selected.size - 25} foto lainnya`);
+    const txt = `Halo KFG 👋\n\nSaya memilih *${selected.size} foto* dari project *${projData.project}*:\n\n${lines.join("\n\n")}`;
+    window.open("https://wa.me/?text=" + encodeURIComponent(txt), "_blank");
+  }
+
+  function shareWAAll() {
+    const arr = [...document.querySelectorAll(".card")]
+      .filter(c => c.style.display !== "none")
+      .map(c => parseInt(c.dataset.idx));
+    const lines = arr.slice(0,20).map(i => `• ${images[i].name}`);
+    if (arr.length > 20) lines.push(`... dan ${arr.length - 20} foto lainnya`);
+    const txt = `Halo KFG 👋\n\nDaftar foto project *${projData.project}* (${arr.length} foto):\n\n${lines.join("\n")}`;
+    window.open("https://wa.me/?text=" + encodeURIComponent(txt), "_blank");
+  }
+
+  // ── HELPERS ──
+  function esc(s) {
+    if (!s) return "";
+    return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
+  function toast(msg) {
+    const w = document.getElementById("toastWrap");
+    const t = document.createElement("div");
+    t.className = "toast";
+    t.textContent = msg;
+    w.appendChild(t);
+    setTimeout(() => t.remove(), 2800);
+  }
+
+  // ── KEYBOARD + SWIPE ──
+  document.addEventListener("keydown", e => {
+    if (!document.getElementById("lb").classList.contains("open")) return;
+    if (e.key === "Escape")      closeLb();
+    if (e.key === "ArrowLeft")   { e.preventDefault(); lbPrev(); }
+    if (e.key === "ArrowRight")  { e.preventDefault(); lbNext(); }
+    if (e.key === " ")           { e.preventDefault(); toggleLbSel(); }
+  });
+
+  let swX = 0;
+  document.getElementById("lb").addEventListener("touchstart", e => { swX = e.changedTouches[0].clientX; });
+  document.getElementById("lb").addEventListener("touchend",   e => {
+    const d = swX - e.changedTouches[0].clientX;
+    if (Math.abs(d) > 50) { d > 0 ? lbNext() : lbPrev(); }
+  });
+
+  init();
+</script>
+</body>
+</html>

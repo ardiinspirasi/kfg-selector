@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Buat Project Preview — KFG</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #080c14;
+      --surface: #0d1420;
+      --surface2: #111827;
+      --border: #1e2d40;
+      --border2: #2d3a52;
+      --accent: #22c55e;
+      --accent-dim: rgba(34,197,94,0.1);
+      --accent-border: rgba(34,197,94,0.25);
+      --text: #f1f5f9;
+      --soft: #94a3b8;
+      --muted: #4a5568;
+      --error: #ef4444;
+      --syne: 'Syne', sans-serif;
+      --dm: 'DM Sans', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--dm);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 10% 0%, rgba(34,197,94,0.06) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 40% at 90% 100%, rgba(59,130,246,0.05) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 32px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(8,12,20,0.8);
+      backdrop-filter: blur(16px);
+    }
+
+    .nav-logo {
+      font-family: var(--syne);
+      font-weight: 800;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text);
+    }
+
+    .nav-dot {
+      width: 8px; height: 8px;
+      background: var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--accent);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%,100% { opacity:1; transform:scale(1); }
+      50% { opacity:0.5; transform:scale(0.75); }
+    }
+
+    .nav-back {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--soft);
+      font-size: 13px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all 0.18s;
+    }
+
+    .nav-back:hover { border-color: var(--border2); color: var(--text); }
+
+    /* ── MAIN ── */
+    main {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 48px 20px 80px;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 560px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 32px 36px 28px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+
+    .card-title {
+      font-family: var(--syne);
+      font-size: 26px;
+      font-weight: 800;
+      line-height: 1.15;
+      margin-bottom: 6px;
+    }
+
+    .card-sub {
+      font-size: 14px;
+      color: var(--soft);
+      line-height: 1.5;
+    }
+
+    .card-body { padding: 32px 36px; }
+
+    /* ── FORM ── */
+    .field { margin-bottom: 22px; }
+
+    .field label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--soft);
+      margin-bottom: 8px;
+      letter-spacing: 0.3px;
+    }
+
+    .field label .req { color: var(--accent); font-size: 16px; line-height: 1; }
+
+    .field input {
+      width: 100%;
+      padding: 13px 16px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-size: 15px;
+      font-family: var(--dm);
+      transition: all 0.18s;
+      outline: none;
+    }
+
+    .field input::placeholder { color: var(--muted); }
+    .field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(34,197,94,0.1); }
+    .field input.error { border-color: var(--error); box-shadow: 0 0 0 3px rgba(239,68,68,0.1); }
+
+    .field-hint {
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .field-error {
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--error);
+      display: none;
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 28px 0;
+    }
+
+    /* ── BUTTON ── */
+    .btn-submit {
+      width: 100%;
+      padding: 16px;
+      background: var(--accent);
+      border: none;
+      border-radius: 14px;
+      color: #022c22;
+      font-family: var(--syne);
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      letter-spacing: 0.3px;
+    }
+
+    .btn-submit:hover:not(:disabled) {
+      background: #16a34a;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(34,197,94,0.3);
+    }
+
+    .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .spin {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(2,44,34,0.3);
+      border-top-color: #022c22;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── SUCCESS ── */
+    .success-panel {
+      display: none;
+      padding: 32px 36px;
+      animation: fadeIn 0.4s ease;
+    }
+
+    @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+    .success-icon {
+      width: 64px; height: 64px;
+      background: var(--accent-dim);
+      border: 1px solid var(--accent-border);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin-bottom: 20px;
+    }
+
+    .success-title {
+      font-family: var(--syne);
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+
+    .success-sub {
+      font-size: 14px;
+      color: var(--soft);
+      margin-bottom: 24px;
+    }
+
+    .link-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .link-box input {
+      flex: 1;
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-size: 13px;
+      font-family: monospace;
+      outline: none;
+      min-width: 0;
+    }
+
+    .link-copy {
+      padding: 7px 14px;
+      background: var(--accent-dim);
+      border: 1px solid var(--accent-border);
+      border-radius: 8px;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .link-copy:hover { background: rgba(34,197,94,0.2); }
+
+    .action-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 20px;
+    }
+
+    .act-btn {
+      flex: 1;
+      padding: 12px 8px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface2);
+      color: var(--soft);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: var(--dm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .act-btn:hover { border-color: var(--border2); color: var(--text); }
+    .act-btn.wa { border-color: rgba(37,211,102,0.3); color: #25d366; background: rgba(37,211,102,0.06); }
+    .act-btn.wa:hover { background: rgba(37,211,102,0.15); }
+    .act-btn.new { border-color: var(--accent-border); color: var(--accent); background: var(--accent-dim); }
+    .act-btn.new:hover { background: rgba(34,197,94,0.18); }
+
+    /* ── TOAST ── */
+    .toast-wrap {
+      position: fixed;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      color: var(--text);
+      padding: 10px 20px;
+      border-radius: 40px;
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      animation: toastIn 0.25s ease;
+    }
+
+    @keyframes toastIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+
+    @media (max-width: 600px) {
+      nav { padding: 14px 20px; }
+      .card { border-radius: 0; border-left: none; border-right: none; border-top: none; }
+      main { padding: 0 0 80px; }
+      .card-header, .card-body, .success-panel { padding: 24px 20px; }
+      .action-row { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<nav>
+  <a href="index.html" class="nav-logo">
+    <div class="nav-dot"></div>
+    KFG Studio
+  </a>
+  <a href="index.html" class="nav-back">← Dashboard</a>
+</nav>
+
+<main>
+  <div class="card">
+    <!-- HEADER -->
+    <div class="card-header">
+      <div class="card-label">Preview System</div>
+      <div class="card-title">Buat Project Preview</div>
+      <div class="card-sub">Generate link galeri untuk client — view, download & share foto langsung dari browser.</div>
+    </div>
+
+    <!-- FORM -->
+    <div class="card-body" id="formBody">
+      <div class="field">
+        <label>Nama Project <span class="req">*</span></label>
+        <input type="text" id="fProject" placeholder="cth: Wedding Andi & Sari" autocomplete="off">
+        <div class="field-error" id="eProject">Nama project wajib diisi</div>
+      </div>
+
+      <div class="field">
+        <label>Nama Client <span class="req">*</span></label>
+        <input type="text" id="fClient" placeholder="cth: Andi & Sari" autocomplete="off">
+        <div class="field-error" id="eClient">Nama client wajib diisi</div>
+      </div>
+
+      <div class="field">
+        <label>Link Google Drive Folder <span class="req">*</span></label>
+        <input type="url" id="fDrive" placeholder="https://drive.google.com/drive/folders/...">
+        <div class="field-hint">Pastikan folder sudah di-share "Anyone with the link can view"</div>
+        <div class="field-error" id="eDrive">Link Google Drive tidak valid</div>
+      </div>
+
+      <div class="divider"></div>
+
+      <button class="btn-submit" id="submitBtn" onclick="handleSubmit()">
+        <div class="spin" id="spin"></div>
+        <span id="submitLabel">🚀 Generate Link Preview</span>
+      </button>
+    </div>
+
+    <!-- SUCCESS -->
+    <div class="success-panel" id="successPanel">
+      <div class="success-icon">🎉</div>
+      <div class="success-title">Link Berhasil Dibuat!</div>
+      <div class="success-sub">Bagikan link ini ke client untuk melihat & download foto.</div>
+
+      <div style="font-size:12px; color:var(--soft); margin-bottom:8px; font-weight:600;">LINK CLIENT PREVIEW</div>
+      <div class="link-box">
+        <input type="text" id="generatedLink" readonly>
+        <button class="link-copy" onclick="copyLink()">Salin</button>
+      </div>
+
+      <div class="action-row">
+        <button class="act-btn wa" onclick="shareWA()">📲 Kirim WA</button>
+        <button class="act-btn" onclick="openPreview()">👁 Buka Preview</button>
+        <button class="act-btn new" onclick="resetForm()">➕ Buat Lagi</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="config.js"></script>
+<script>
+  let latestLink = "";
+  let latestProject = "";
+
+  // ── VALIDATE ──
+  function validate() {
+    let ok = true;
+    const fields = [
+      { id: "fProject", err: "eProject", check: v => v.trim().length > 0 },
+      { id: "fClient",  err: "eClient",  check: v => v.trim().length > 0 },
+      { id: "fDrive",   err: "eDrive",   check: v => v.includes("drive.google.com") }
+    ];
+    fields.forEach(f => {
+      const el = document.getElementById(f.id);
+      const errEl = document.getElementById(f.err);
+      const valid = f.check(el.value);
+      el.classList.toggle("error", !valid);
+      errEl.style.display = valid ? "none" : "block";
+      if (!valid) ok = false;
+    });
+    return ok;
+  }
+
+  ["fProject","fClient","fDrive"].forEach(id => {
+    document.getElementById(id).addEventListener("input", () => {
+      document.getElementById(id).classList.remove("error");
+    });
+  });
+
+  // ── SUBMIT ──
+  async function handleSubmit() {
+    if (!validate()) return;
+
+    const btn   = document.getElementById("submitBtn");
+    const spin  = document.getElementById("spin");
+    const label = document.getElementById("submitLabel");
+
+    btn.disabled = true;
+    spin.style.display = "block";
+    label.textContent = "Memproses...";
+
+    try {
+      const project  = document.getElementById("fProject").value.trim();
+      const client   = document.getElementById("fClient").value.trim();
+      const driveUrl = document.getElementById("fDrive").value.trim();
+
+      const result = await apiPost("createPreviewProject", { project, client, driveUrl });
+
+      const previewId = result.id;
+      latestProject = project;
+      latestLink = location.origin + location.pathname.replace("preview-create.html", "") + "preview-client.html?id=" + previewId;
+
+      document.getElementById("generatedLink").value = latestLink;
+      document.getElementById("formBody").style.display = "none";
+      document.getElementById("successPanel").style.display = "block";
+
+    } catch (err) {
+      toast("❌ " + (err.message || "Gagal membuat project"));
+      btn.disabled = false;
+      spin.style.display = "none";
+      label.textContent = "🚀 Generate Link Preview";
+    }
+  }
+
+  // ── POST ──
+  async function apiPost(action, body = {}) {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({ action, ...body })
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error || "Terjadi kesalahan");
+    return json.data;
+  }
+
+  // ── ACTIONS ──
+  function copyLink() {
+    navigator.clipboard.writeText(latestLink)
+      .then(() => toast("✅ Link disalin!"))
+      .catch(() => toast("❌ Gagal menyalin"));
+  }
+
+  function openPreview() { window.open(latestLink, "_blank"); }
+
+  function shareWA() {
+    const text = `Halo 👋\n\nBerikut link galeri foto untuk project *${latestProject}*:\n\n${latestLink}\n\nSilakan lihat, pilih, dan download foto di link tersebut ya 🙏`;
+    window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank");
+  }
+
+  function resetForm() {
+    ["fProject","fClient","fDrive"].forEach(id => {
+      document.getElementById(id).value = "";
+      document.getElementById(id).classList.remove("error");
+    });
+    document.getElementById("formBody").style.display = "block";
+    document.getElementById("successPanel").style.display = "none";
+    document.getElementById("submitBtn").disabled = false;
+    document.getElementById("spin").style.display = "none";
+    document.getElementById("submitLabel").textContent = "🚀 Generate Link Preview";
+    document.getElementById("fProject").focus();
+  }
+
+  // ── TOAST ──
+  function toast(msg) {
+    const w = document.getElementById("toastWrap");
+    const t = document.createElement("div");
+    t.className = "toast";
+    t.textContent = msg;
+    w.appendChild(t);
+    setTimeout(() => t.remove(), 3000);
+  }
+
+  // Enter key support
+  document.addEventListener("keydown", e => {
+    if (e.key === "Enter" && document.getElementById("formBody").style.display !== "none") {
+      handleSubmit();
+    }
+  });
+</script>
+</body>
+</html>
