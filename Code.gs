@@ -7,6 +7,7 @@
 const SHEET_PROJECT   = "PROJECT_DB";
 const SHEET_SELECTION = "SELECTION_DB";
 const SHEET_ERROR     = "ERROR_LOG";
+const SHEET_PREVIEW   = "PREVIEW_DB";
 
 // ================ CORS HELPER ================
 function makeResponse(data) {
@@ -31,23 +32,28 @@ function doGet(e) {
 
   try {
     switch (action) {
+
+      // ── PROJECT SELECTOR (sistem lama) ──
       case "getProjects":
         return makeSuccess(getProjects());
-
       case "getProject":
         return makeSuccess(getProject(param.id));
-
       case "getImages":
         return makeSuccess(getImages(param.id));
-
       case "getSelections":
         return makeSuccess(getSelections(param.id));
-
       case "getAllProjects":
         return makeSuccess(getAllProjects());
-
       case "checkSubmitted":
         return makeSuccess(checkSubmitted(param.id));
+
+      // ── PREVIEW SYSTEM (sistem baru) ──
+      case "getPreviewProject":
+        return makeSuccess(getPreviewProject(param.id));
+      case "getPreviewImages":
+        return makeSuccess(getPreviewImages(param.id));
+      case "getPreviewProjects":
+        return makeSuccess(getPreviewProjects());
 
       default:
         return makeError("Action tidak dikenali: " + action);
@@ -64,20 +70,24 @@ function doPost(e) {
     const action = body.action || "";
 
     switch (action) {
+
+      // ── PROJECT SELECTOR (sistem lama) ──
       case "saveSelection":
         return makeSuccess(saveSelection(body.projectId, body.list));
-
       case "createProject":
         return makeSuccess(createProject(body.project, body.client, body.folderUrl, body.maxSelect, body.additionalFolders));
-
       case "updateProject":
         return makeSuccess(createOrUpdateProject(body.id, body.project, body.client, body.maxSelect, body.additionalFolders));
-
       case "deleteProject":
         return makeSuccess(deleteProject(body.projectId));
-
       case "autoCopy":
         return makeSuccess(autoCopyToFinal(body.projectId));
+
+      // ── PREVIEW SYSTEM (sistem baru) ──
+      case "createPreviewProject":
+        return makeSuccess(createPreviewProject(body.project, body.client, body.driveUrl));
+      case "deletePreviewProject":
+        return makeSuccess(deletePreviewProject(body.id));
 
       default:
         return makeError("Action tidak dikenali: " + action);
@@ -109,13 +119,11 @@ function logError(error) {
     }
 
     const stack = error.stack || "";
-    const user = "";
-
     errorSheet.appendRow([
       new Date(),
       error.toString(),
       stack.substring(0, 500),
-      user,
+      "",
       "-"
     ]);
   } catch (e) {}
@@ -131,10 +139,11 @@ function getUserFriendlyMessage(error) {
 }
 
 // ================ SLUG GENERATOR ================
-function generateSlug(text, existingIds = []) {
+function generateSlug(text, existingIds) {
+  existingIds = existingIds || [];
   if (!text || !text.trim()) return "";
 
-  let slug = text.toLowerCase().trim()
+  var slug = text.toLowerCase().trim()
     .replace(/[^a-z0-9\s-]/g, '')
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
@@ -142,9 +151,9 @@ function generateSlug(text, existingIds = []) {
 
   if (!slug || slug.length < 3) slug = "project-" + new Date().getTime();
 
-  let finalSlug = slug;
-  let counter = 1;
-  while (existingIds.includes(finalSlug)) {
+  var finalSlug = slug;
+  var counter = 1;
+  while (existingIds.indexOf(finalSlug) !== -1) {
     finalSlug = slug + "-" + counter;
     counter++;
   }
@@ -175,7 +184,7 @@ function getAllProjectFolders(projectId) {
   return folders;
 }
 
-// ================ API: GET IMAGES ================
+// ================ API: GET IMAGES (sistem lama) ================
 function getImages(projectId) {
   if (!projectId) throw new Error("Project ID diperlukan");
 
@@ -210,7 +219,7 @@ function getImages(projectId) {
   return allImages.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-// ================ API: GET PROJECT ================
+// ================ API: GET PROJECT (sistem lama) ================
 function getProject(projectId) {
   if (!projectId) throw new Error("Project ID diperlukan");
 
@@ -228,7 +237,7 @@ function getProject(projectId) {
   };
 }
 
-// ================ API: GET PROJECTS (ADMIN) ================
+// ================ API: GET PROJECTS ADMIN (sistem lama) ================
 function getProjects() {
   const sheet = SpreadsheetApp.getActive().getSheetByName(SHEET_PROJECT);
   const data = sheet.getDataRange().getValues();
@@ -243,7 +252,7 @@ function getProjects() {
   })).filter(p => p.id);
 }
 
-// ================ API: GET ALL PROJECTS (INDEX) ================
+// ================ API: GET ALL PROJECTS INDEX (sistem lama) ================
 function getAllProjects() {
   const sheet = SpreadsheetApp.getActive().getSheetByName(SHEET_PROJECT);
   const data = sheet.getDataRange().getValues();
@@ -263,14 +272,14 @@ function getSelectionCount(projectId) {
   return data.slice(1).filter(r => r[1] == projectId).length;
 }
 
-// ================ API: CHECK SUBMITTED ================
+// ================ API: CHECK SUBMITTED (sistem lama) ================
 function checkSubmitted(projectId) {
   const sheet = SpreadsheetApp.getActive().getSheetByName(SHEET_SELECTION);
   const data = sheet.getDataRange().getValues();
   return data.slice(1).some(r => r[1] == projectId);
 }
 
-// ================ API: GET SELECTIONS ================
+// ================ API: GET SELECTIONS (sistem lama) ================
 function getSelections(projectId) {
   if (!projectId) throw new Error("Project ID diperlukan");
 
@@ -282,7 +291,7 @@ function getSelections(projectId) {
     .map(r => [r[0], r[1], r[2]]);
 }
 
-// ================ API: SAVE SELECTION ================
+// ================ API: SAVE SELECTION (sistem lama) ================
 function saveSelection(projectId, list) {
   if (!projectId)            throw new Error("Project ID diperlukan");
   if (!list || !list.length) throw new Error("Tidak ada file yang dipilih");
@@ -300,7 +309,7 @@ function saveSelection(projectId, list) {
   return true;
 }
 
-// ================ API: CREATE PROJECT ================
+// ================ API: CREATE PROJECT (sistem lama) ================
 function createProject(project, client, folderUrl, maxSelect, additionalFolders) {
   if (!project || !project.trim())     throw new Error("Nama project wajib diisi");
   if (!client || !client.trim())       throw new Error("Nama client wajib diisi");
@@ -340,7 +349,7 @@ function createProject(project, client, folderUrl, maxSelect, additionalFolders)
   return projectId;
 }
 
-// ================ API: UPDATE PROJECT ================
+// ================ API: UPDATE PROJECT (sistem lama) ================
 function createOrUpdateProject(id, project, client, maxSelect, additionalFolders) {
   if (!id)                           throw new Error("Project ID diperlukan");
   if (!project || !project.trim())   throw new Error("Nama project wajib diisi");
@@ -379,7 +388,7 @@ function createOrUpdateProject(id, project, client, maxSelect, additionalFolders
   throw new Error("Project tidak ditemukan");
 }
 
-// ================ API: DELETE PROJECT ================
+// ================ API: DELETE PROJECT (sistem lama) ================
 function deleteProject(projectId) {
   if (!projectId) throw new Error("Project ID diperlukan");
 
@@ -396,7 +405,7 @@ function deleteProject(projectId) {
   throw new Error("Project tidak ditemukan");
 }
 
-// ================ API: AUTO COPY TO FINAL ================
+// ================ API: AUTO COPY TO FINAL (sistem lama) ================
 function autoCopyToFinal(projectId) {
   const finalFolderId = PropertiesService.getScriptProperties().getProperty("FINAL_FOLDER_ID");
   if (!finalFolderId) throw new Error("Folder FINAL belum dikonfigurasi.");
@@ -425,10 +434,8 @@ function autoCopyToFinal(projectId) {
   const finalFolder = DriveApp.getFolderById(finalFolderId);
 
   let totalCopied = 0, totalSkipped = 0, totalNotFound = 0;
-  const fileStatusMap = {};
 
   uniqueFiles.forEach(fileName => {
-    fileStatusMap[fileName] = "❌ Tidak ditemukan";
     let fileFound = false;
 
     for (const folderId of sourceFolders) {
@@ -440,11 +447,9 @@ function autoCopyToFinal(projectId) {
           const file = files.next();
           const existing = finalFolder.getFilesByName(fileName);
           if (existing.hasNext()) {
-            fileStatusMap[fileName] = "⚠️ Sudah ada";
             totalSkipped++;
           } else {
             file.makeCopy(fileName, finalFolder);
-            fileStatusMap[fileName] = "✅ Dicopy";
             totalCopied++;
           }
           break;
@@ -455,7 +460,7 @@ function autoCopyToFinal(projectId) {
     if (!fileFound) totalNotFound++;
   });
 
-  return `✅ Selesai! Dicopy: ${totalCopied}, Sudah ada: ${totalSkipped}, Tidak ditemukan: ${totalNotFound}`;
+  return "✅ Selesai! Dicopy: " + totalCopied + ", Sudah ada: " + totalSkipped + ", Tidak ditemukan: " + totalNotFound;
 }
 
 // ================ NOTIFICATION ================
@@ -469,8 +474,8 @@ function notifyAdmin(projectId, count) {
     if (adminEmail) {
       MailApp.sendEmail({
         to: adminEmail,
-        subject: `📸 Submission Baru: ${project[1]}`,
-        body: `Client ${project[2]} telah memilih ${count} foto.\n\nCek di spreadsheet: ${SpreadsheetApp.getActive().getUrl()}`
+        subject: "📸 Submission Baru: " + project[1],
+        body: "Client " + project[2] + " telah memilih " + count + " foto.\n\nCek di spreadsheet: " + SpreadsheetApp.getActive().getUrl()
       });
     }
   }
@@ -486,7 +491,7 @@ function dailyMaintenance() {
       MailApp.sendEmail({
         to: adminEmail,
         subject: "📊 Laporan Daily Maintenance KFG",
-        body: `Maintenance selesai.\n\nCek spreadsheet: ${SpreadsheetApp.getActive().getUrl()}`
+        body: "Maintenance selesai.\n\nCek spreadsheet: " + SpreadsheetApp.getActive().getUrl()
       });
     }
   } catch (e) { logError(e); }
@@ -502,15 +507,13 @@ function cleanOrphanRecords() {
 
   const rowsToDelete = [];
   for (let i = 1; i < selectionData.length; i++) {
-    if (!validIds.includes(selectionData[i][1])) rowsToDelete.push(i + 1);
+    if (validIds.indexOf(selectionData[i][1]) === -1) rowsToDelete.push(i + 1);
   }
   rowsToDelete.sort((a, b) => b - a).forEach(row => selectionSheet.deleteRow(row));
 }
 
 function validateAllProjects() {
-  const sheet = SpreadsheetApp.getActive().getSheetByName(SHEET_PROJECT);
-  const data = sheet.getDataRange().getValues();
-  // validation logic tetap sama
+  // placeholder — bisa diisi validasi tambahan jika diperlukan
 }
 
 // ================ SETUP ================
@@ -539,4 +542,167 @@ function extractFolderId(url) {
     if (match) return match[1] || match[0];
   }
   return null;
+}
+
+// ================================================================
+//  PREVIEW SYSTEM — fungsi-fungsi baru untuk sistem preview & download
+// ================================================================
+
+// ── Setup sheet PREVIEW_DB (auto-create jika belum ada) ──
+function ensurePreviewSheet() {
+  const ss = SpreadsheetApp.getActive();
+  let sh = ss.getSheetByName(SHEET_PREVIEW);
+
+  if (!sh) {
+    sh = ss.insertSheet(SHEET_PREVIEW);
+    sh.getRange(1, 1, 1, 6).setValues([[
+      "ID", "Project", "Client", "FolderID", "DriveUrl", "CreatedAt"
+    ]]);
+    sh.setFrozenRows(1);
+    sh.getRange(1, 1, 1, 6)
+      .setBackground("#0d1420")
+      .setFontColor("#22c55e")
+      .setFontWeight("bold");
+    sh.setColumnWidth(1, 180);
+    sh.setColumnWidth(2, 200);
+    sh.setColumnWidth(3, 160);
+    sh.setColumnWidth(4, 220);
+    sh.setColumnWidth(5, 320);
+    sh.setColumnWidth(6, 160);
+    Logger.log("✅ Sheet PREVIEW_DB dibuat");
+  }
+
+  return sh;
+}
+
+// ── Generate ID unik untuk preview project ──
+function generatePreviewId(client, project) {
+  const ss = SpreadsheetApp.getActive();
+  const sh = ss.getSheetByName(SHEET_PREVIEW);
+  const existing = sh
+    ? sh.getDataRange().getValues().slice(1).map(r => r[0]).filter(Boolean)
+    : [];
+
+  let base = (client + "-" + project)
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .substring(0, 40);
+
+  if (!base || base.length < 3) base = "preview-" + Date.now();
+
+  let slug = base, n = 1;
+  while (existing.indexOf(slug) !== -1) { slug = base + "-" + n; n++; }
+  return slug;
+}
+
+// ================ API: CREATE PREVIEW PROJECT ================
+function createPreviewProject(project, client, driveUrl) {
+  if (!project  || !project.trim())  throw new Error("Nama project wajib diisi");
+  if (!client   || !client.trim())   throw new Error("Nama client wajib diisi");
+  if (!driveUrl || !driveUrl.trim()) throw new Error("Link Google Drive wajib diisi");
+
+  const folderId = extractFolderId(driveUrl);
+  if (!folderId) throw new Error("Format link Google Drive tidak valid");
+
+  // validasi folder bisa diakses
+  try {
+    DriveApp.getFolderById(folderId);
+  } catch (e) {
+    throw new Error("Folder tidak bisa diakses. Pastikan sudah di-share 'Anyone with the link can view'.");
+  }
+
+  const sh = ensurePreviewSheet();
+  const id = generatePreviewId(client, project);
+
+  sh.appendRow([
+    id,
+    project.trim(),
+    client.trim(),
+    folderId,
+    driveUrl.trim(),
+    new Date()
+  ]);
+
+  Logger.log("✅ Preview project dibuat: " + id);
+  return { id: id };
+}
+
+// ================ API: GET PREVIEW PROJECT ================
+function getPreviewProject(id) {
+  if (!id) throw new Error("ID project diperlukan");
+
+  const sh   = ensurePreviewSheet();
+  const data = sh.getDataRange().getValues();
+  const row  = data.find(r => r[0] == id);
+
+  if (!row) throw new Error("Project preview tidak ditemukan");
+
+  return {
+    id:       row[0],
+    project:  row[1],
+    client:   row[2],
+    folderId: row[3],
+    driveUrl: row[4]
+  };
+}
+
+// ================ API: GET ALL PREVIEW PROJECTS ================
+function getPreviewProjects() {
+  const sh   = ensurePreviewSheet();
+  const data = sh.getDataRange().getValues();
+  if (data.length <= 1) return [];
+
+  return data.slice(1)
+    .filter(r => r[0])
+    .map(r => ({
+      id:        r[0],
+      project:   r[1],
+      client:    r[2],
+      folderId:  r[3],
+      driveUrl:  r[4],
+      createdAt: r[5] ? new Date(r[5]).toLocaleDateString("id-ID") : "-"
+    }));
+}
+
+// ================ API: GET PREVIEW IMAGES ================
+function getPreviewImages(id) {
+  if (!id) throw new Error("ID project diperlukan");
+
+  const proj   = getPreviewProject(id);
+  const folder = DriveApp.getFolderById(proj.folderId);
+  const files  = folder.getFiles();
+  const images = [];
+
+  while (files.hasNext()) {
+    const f = files.next();
+    if (!f.getMimeType().includes("image")) continue;
+    const fileId = f.getId();
+    images.push({
+      name:    f.getName(),
+      url:     "https://drive.google.com/thumbnail?id=" + fileId + "&sz=w800",
+      fullUrl: "https://drive.google.com/thumbnail?id=" + fileId + "&sz=w1600"
+    });
+  }
+
+  return images.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+// ================ API: DELETE PREVIEW PROJECT ================
+function deletePreviewProject(id) {
+  if (!id) throw new Error("ID diperlukan");
+
+  const sh   = ensurePreviewSheet();
+  const data = sh.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] == id) {
+      sh.deleteRow(i + 1);
+      return true;
+    }
+  }
+
+  throw new Error("Project preview tidak ditemukan");
 }
